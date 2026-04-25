@@ -451,7 +451,7 @@ select option{background:var(--surface2)}
 // ════════════════════════════════════════════════
 const CFG = {
   company  : 'VOER-Staff 2026',
-  webhook  : 'https://script.google.com/macros/s/AKfycbxZYbxzK6_agk8D12sJxtz2QPBv-cYhtRxiMagZ1dbZTkaxPu6IZywzf-o2I-e8-VFA/exec',
+  webhook  : 'https://script.google.com/macros/s/AKfycbxOO2cnjParU3OQHXk6IoKb77tPa8LxPknQuIbUL3yBWhPy9kwMz7u9p4eie62Hb50H/exec',
   lat      : 34.12137510638946,
   lng      : -118.2246968308343,
   radius   : 300,
@@ -855,41 +855,47 @@ function buildRow(rec) {
 // GOOGLE SHEETS
 // ════════════════════════════════════════════════
 
-// fetchFromSheet: uses a hidden <script> tag (JSONP-style) to call the Apps Script
-// doGet endpoint — this bypasses CORS which blocks normal fetch() calls
-let _jsonpCallbackCount = 0;
+// fetchFromSheet: tries JSONP first (bypasses CORS), falls back gracefully
+let _cbCount = 0;
 function fetchFromSheet(action, params, onSuccess, onError) {
-  const callbackName = '__jsonp_cb_' + (++_jsonpCallbackCount);
-  const timeout = setTimeout(function() {
-    delete window[callbackName];
-    if (document.getElementById(callbackName)) document.getElementById(callbackName).remove();
-    console.warn('Sheet fetch timed out for action:', action);
-    if (onError) onError();
-  }, 12000);
+  const cbName = '__gs_cb_' + (++_cbCount) + '_' + Date.now();
 
-  // Build URL with all params + callback
-  let url = config.webhook + '?action=' + encodeURIComponent(action) + '&callback=' + callbackName;
-  Object.keys(params).forEach(k => { url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); });
+  // Build URL
+  let url = config.webhook + '?action=' + encodeURIComponent(action) + '&callback=' + cbName;
+  Object.keys(params).forEach(k => {
+    url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+  });
 
-  window[callbackName] = function(data) {
-    clearTimeout(timeout);
-    delete window[callbackName];
-    const el = document.getElementById(callbackName);
+  let done = false;
+
+  const finish = function(data) {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    try { delete window[cbName]; } catch(e) {}
+    const el = document.getElementById(cbName);
     if (el) el.remove();
-    if (onSuccess) onSuccess(data);
+    if (data !== null) onSuccess(data);
+    else if (onError) onError();
   };
 
+  const timer = setTimeout(function() {
+    console.warn('Sheet timeout for:', action);
+    finish(null);
+  }, 15000);
+
+  window[cbName] = function(data) { finish(data); };
+
   const script = document.createElement('script');
-  script.id  = callbackName;
+  script.id = cbName;
   script.src = url;
   script.onerror = function() {
-    clearTimeout(timeout);
-    delete window[callbackName];
-    script.remove();
-    if (onError) onError();
+    console.warn('Sheet JSONP error for:', action);
+    finish(null);
   };
   document.head.appendChild(script);
 }
+
 
 async function postSheet(data) {
   if (!config.webhook) return;
