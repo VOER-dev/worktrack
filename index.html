@@ -414,7 +414,23 @@
     </div>
     <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
     <div class="divider"></div>
-    <button class="btn btn-ghost" onclick="showAdminReset()">Admin / Reset Setup</button>
+    <button class="btn btn-ghost" onclick="showConnectSheet()">🔗 Connect to a workspace</button>
+    <button class="btn btn-ghost" style="margin-top:4px" onclick="showAdminReset()">Admin / Reset Setup</button>
+  </div>
+</div>
+
+<!-- ── MODAL: Employee connects to existing workspace ── -->
+<div class="modal-overlay" id="modal-connect">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 style="margin-bottom:6px">Connect to Workspace</h2>
+    <p class="text-muted small" style="margin-bottom:20px">Ask your admin for the workspace URL and paste it here. You only need to do this once.</p>
+    <div class="input-group">
+      <label>Workspace / Apps Script URL</label>
+      <input type="url" id="connect-url" placeholder="https://script.google.com/macros/s/…">
+    </div>
+    <button class="btn btn-primary" onclick="connectWorkspace()">Connect & Load Employees</button>
+    <button class="btn btn-ghost mt-8" onclick="document.getElementById('modal-connect').classList.remove('open')">Cancel</button>
   </div>
 </div>
 
@@ -629,14 +645,27 @@ function getInitials(name) { return name.split(' ').map(n=>n[0]).join('').toUppe
 // STORAGE
 // ═══════════════════════════════════════════════════════════════
 function saveState() {
-  localStorage.setItem('wt_config', JSON.stringify(config));
+  // Only persist employee clock records locally — config is hardcoded
   localStorage.setItem('wt_employees', JSON.stringify(employees));
 }
+// ═══════════════════════════════════════════════════════════════
+// HARDCODED CONFIG — never shows setup screen
+// ═══════════════════════════════════════════════════════════════
+const HARDCODED_CONFIG = {
+  company : "VOER-Staff 2026",
+  webhook : "https://script.google.com/macros/s/AKfycbzH8sGMtaNePJfZPd6CAv7j_dq0j4CpYvF-yXyCn8IgX6lMHRPsUT7ue-hPKmo88o0/exec",
+  lat     : 33.7701,
+  lng     : -117.8676,
+  radius  : 50
+};
+
 function loadState() {
   try {
-    config = JSON.parse(localStorage.getItem('wt_config'));
+    // Always use hardcoded config — ignore any stale localStorage config
+    config = { ...HARDCODED_CONFIG };
+    // Keep employee clock records from localStorage (shift history stays on device)
     employees = JSON.parse(localStorage.getItem('wt_employees')) || [];
-  } catch(e) { config = null; employees = []; }
+  } catch(e) { config = { ...HARDCODED_CONFIG }; employees = []; }
 }
 function getEmployee(id) { return employees.find(e=>e.id===id); }
 function updateEmployee(emp) {
@@ -647,17 +676,12 @@ function updateEmployee(emp) {
 function todayKey() { return new Date().toISOString().split('T')[0]; }
 
 // ═══════════════════════════════════════════════════════════════
-// INIT
+// INIT — always goes straight to login
 // ═══════════════════════════════════════════════════════════════
 window.onload = function() {
   loadState();
-  initStepDots();
-  if(!config) {
-    showScreen('setup');
-  } else {
-    showLoginScreen();
-  }
   startClock();
+  showLoginScreen(); // always skip setup, go straight to login
 };
 
 function showScreen(name) {
@@ -761,27 +785,146 @@ function finishSetup() {
 // ═══════════════════════════════════════════════════════════════
 // LOGIN
 // ═══════════════════════════════════════════════════════════════
-function showLoginScreen() {
+async function showLoginScreen() {
   document.getElementById('login-company-name').textContent = config?.company || 'WorkTrack';
   const sel = document.getElementById('login-employee');
+  sel.innerHTML = '<option value="">⏳ Loading employees…</option>';
+  sel.disabled = true;
+  showScreen('login');
+
+  // If we have a webhook, always fetch fresh employee list from Sheets
+  if (config?.webhook) {
+    try {
+      const url = config.webhook + '?action=getEmployees';
+      const res = await fetch(url);
+      const data = await res.json();
+
+      // Merge fetched employees with local records (preserve clock history)
+      if (data.employees && data.employees.length > 0) {
+        // Update config from sheet if present
+        if (data.config?.company) config.company = data.config.company;
+        if (data.config?.lat) config.lat = parseFloat(data.config.lat);
+        if (data.config?.lng) config.lng = parseFloat(data.config.lng);
+        if (data.config?.radius) config.radius = parseInt(data.config.radius);
+
+        // Merge: keep local records, update name list from sheet
+        data.employees.forEach(fetched => {
+          const existing = employees.find(e => e.id === fetched.id);
+          if (!existing) {
+            employees.push({ id: fetched.id, name: fetched.name, records: [] });
+          } else {
+            existing.name = fetched.name; // keep name in sync
+          }
+        });
+        saveState();
+      }
+    } catch(err) {
+      console.warn('Could not fetch employees from Sheets, using local cache.', err);
+    }
+  }
+
+  // Populate dropdown
   sel.innerHTML = '<option value="">— Choose your name —</option>';
-  employees.forEach(e=>{
+  if (employees.length === 0) {
+    sel.innerHTML = '<option value="">No employees found — contact admin</option>';
+    sel.disabled = true;
+    return;
+  }
+  employees.forEach(e => {
     const o = document.createElement('option');
     o.value = e.id; o.textContent = e.name;
     sel.appendChild(o);
   });
-  showScreen('login');
+  sel.disabled = false;
+  document.getElementById('login-company-name').textContent = config?.company || 'WorkTrack';
 }
 
-function doLogin() {
+async function doLogin() {
   const id = document.getElementById('login-employee').value;
   const pin = document.getElementById('login-pin').value;
-  if(!id) { toast('Select your name'); return; }
-  const emp = getEmployee(id);
-  if(!emp || emp.pin !== pin) { toast('Incorrect PIN'); return; }
-  currentUser = emp;
+  if (!id) { toast('Select your name'); return; }
+  if (!pin) { toast('Enter your PIN'); return; }
+
+  const btn = document.querySelector('#screen-login .btn-primary');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Signing in…';
+
+  let verified = false;
+
+  // Try verifying PIN against Sheets first (most secure)
+  if (config?.webhook) {
+    try {
+      const url = `${config.webhook}?action=verifyPin&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      verified = data.valid === true;
+    } catch(err) {
+      // Fallback to local PIN check if offline
+      const emp = getEmployee(id);
+      verified = emp && emp.pin === pin;
+    }
+  } else {
+    // No webhook — use local PIN only
+    const emp = getEmployee(id);
+    verified = emp && emp.pin === pin;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+
+  if (!verified) { toast('❌ Incorrect PIN'); document.getElementById('login-pin').value = ''; return; }
+
+  currentUser = getEmployee(id);
+  if (!currentUser) {
+    // Employee exists in Sheets but not locally yet — create local shell
+    const sel = document.getElementById('login-employee');
+    const name = sel.options[sel.selectedIndex].text;
+    currentUser = { id, name, records: [], joinedDate: todayKey() };
+    employees.push(currentUser);
+    saveState();
+  }
   document.getElementById('login-pin').value = '';
   enterApp();
+}
+
+function showConnectSheet() {
+  document.getElementById('modal-connect').classList.add('open');
+}
+
+async function connectWorkspace() {
+  const url = document.getElementById('connect-url').value.trim();
+  if (!url) { toast('Paste the workspace URL'); return; }
+  const btn = document.querySelector('#modal-connect .btn-primary');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Connecting…';
+  try {
+    const res = await fetch(url + '?action=getEmployees');
+    const data = await res.json();
+    if (!data.employees || data.employees.length === 0) {
+      toast('⚠️ No employees found. Check the URL.'); btn.disabled=false; btn.textContent='Connect & Load Employees'; return;
+    }
+    // Save config from sheet
+    config = config || {};
+    config.webhook = url;
+    if (data.config?.company) config.company = data.config.company;
+    if (data.config?.lat) config.lat = parseFloat(data.config.lat);
+    if (data.config?.lng) config.lng = parseFloat(data.config.lng);
+    if (data.config?.radius) config.radius = parseInt(data.config.radius);
+    // Merge employees
+    data.employees.forEach(fetched => {
+      if (!employees.find(e => e.id === fetched.id)) {
+        employees.push({ id: fetched.id, name: fetched.name, records: [] });
+      }
+    });
+    saveState();
+    document.getElementById('modal-connect').classList.remove('open');
+    toast('✓ Connected! Select your name below.');
+    showLoginScreen();
+  } catch(err) {
+    toast('❌ Could not connect. Check the URL and try again.');
+  }
+  btn.disabled = false;
+  btn.textContent = 'Connect & Load Employees';
 }
 
 function showAdminReset() {
