@@ -620,24 +620,32 @@ function enterApp() {
 }
 
 function updateHomeStatus() {
-  const today = todayKey();
-  const rec   = currentUser.records?.find(r => r.date === today);
-  const badge = document.getElementById('home-badge');
-  const btn   = document.getElementById('clock-btn');
+  const today   = todayKey();
+  const active  = getActiveShift();
+  const allToday = (currentUser.records || []).filter(r => r.date === today);
+  const badge   = document.getElementById('home-badge');
+  const btn     = document.getElementById('clock-btn');
 
-  if (rec?.clockIn && !rec?.clockOut) {
+  if (active) {
+    // Currently clocked in
     badge.innerHTML = '<span class="badge badge-in"><span class="bdot"></span>Clocked In</span>';
     btn.textContent = 'Clock Out';
     btn.className   = 'btn btn-danger';
+    btn.disabled    = !isAtWork;
     document.getElementById('hours-card').style.display = 'block';
-    updateHours(rec);
-  } else if (rec?.clockOut) {
-    badge.innerHTML = '<span class="badge badge-out">Day Complete</span>';
-    btn.textContent = 'Day Ended';
-    btn.className   = 'btn btn-secondary';
-    btn.disabled    = true;
+    updateHours(active);
+  } else if (allToday.length > 0) {
+    // Has shifts today but currently out — can clock back in
+    const totalMins = allToday.reduce((sum, r) => {
+      if (r.clockIn && r.clockOut) return sum + Math.floor((new Date(r.clockOut) - new Date(r.clockIn)) / 60000);
+      return sum;
+    }, 0);
+    badge.innerHTML = '<span class="badge badge-out">' + allToday.length + ' shift' + (allToday.length > 1 ? 's' : '') + ' today</span>';
+    btn.textContent = 'Clock In Again';
+    btn.className   = 'btn btn-primary';
+    btn.disabled    = !isAtWork;
     document.getElementById('hours-card').style.display = 'block';
-    updateHours(rec);
+    document.getElementById('hours-val').textContent = Math.floor(totalMins/60) + 'h ' + (totalMins%60) + 'm';
   } else {
     badge.innerHTML = '<span class="badge badge-out">Not Clocked In</span>';
     btn.textContent = 'Clock In';
@@ -645,7 +653,6 @@ function updateHomeStatus() {
     btn.disabled    = !isAtWork;
     document.getElementById('hours-card').style.display = 'none';
   }
-  if (rec?.clockIn && !rec?.clockOut) btn.disabled = !isAtWork;
 }
 
 function updateHours(rec) {
@@ -656,17 +663,31 @@ function updateHours(rec) {
 }
 
 function renderHomeTasks() {
-  const today = todayKey();
-  const rec   = currentUser.records?.find(r => r.date === today);
-  const card  = document.getElementById('tasks-card');
-  if (!rec?.tasks?.length) { card.style.display = 'none'; return; }
+  const today    = todayKey();
+  const allToday = (currentUser.records || []).filter(r => r.date === today);
+  const card     = document.getElementById('tasks-card');
+  if (!allToday.length) { card.style.display = 'none'; return; }
+
+  const allTasks = allToday.flatMap(r => r.tasks || []);
+  if (!allTasks.length) { card.style.display = 'none'; return; }
+
   card.style.display = 'block';
-  document.getElementById('tasks-badge').textContent = rec.tasks.length + ' task' + (rec.tasks.length > 1 ? 's' : '');
-  document.getElementById('tasks-list').innerHTML = rec.tasks.map(t => `
-    <div class="task-item">
-      <div style="flex:1;font-size:14px;${t.status==='done'?'text-decoration:line-through;color:var(--muted)':''}">${t.text}</div>
-      <span class="tag" style="${t.status==='done'?'border-color:rgba(71,255,138,.3);color:var(--success)':t.status==='partial'?'border-color:rgba(232,255,71,.3);color:var(--accent)':'color:var(--muted)'}">${t.status==='done'?'Done':t.status==='partial'?'Partial':'Pending'}</span>
-    </div>`).join('');
+  document.getElementById('tasks-badge').textContent = allTasks.length + ' task' + (allTasks.length > 1 ? 's' : '');
+
+  // Group by shift if multiple shifts
+  document.getElementById('tasks-list').innerHTML = allToday.map((rec, si) => {
+    const tasks = rec.tasks || [];
+    if (!tasks.length) return '';
+    const shiftLabel = allToday.length > 1
+      ? '<div style="font-size:11px;font-family:var(--fd);font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;padding:6px 0 4px">Shift ' + (si+1) + ' — ' + new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + '</div>'
+      : '';
+    return shiftLabel + tasks.map(t =>
+      '<div class="task-item">' +
+        '<div style="flex:1;font-size:14px;' + (t.status==='done'?'text-decoration:line-through;color:var(--muted)':'') + '">' + t.text + '</div>' +
+        '<span class="tag" style="' + (t.status==='done'?'border-color:rgba(71,255,138,.3);color:var(--success)':t.status==='partial'?'border-color:rgba(232,255,71,.3);color:var(--accent)':'color:var(--muted)') + '">' + (t.status==='done'?'Done':t.status==='partial'?'Partial':'Pending') + '</span>' +
+      '</div>'
+    ).join('');
+  }).join('');
 }
 
 // ════════════════════════════════════════════════
@@ -722,15 +743,22 @@ function dist(lat1, lon1, lat2, lon2) {
 // ════════════════════════════════════════════════
 // CLOCK IN / OUT
 // ════════════════════════════════════════════════
+// Returns the active (clocked in, not yet out) shift for today, or null
+function getActiveShift() {
+  const today = todayKey();
+  if (!currentUser.records) return null;
+  // Find most recent record for today that has clockIn but no clockOut
+  return currentUser.records.slice().reverse().find(r => r.date === today && r.clockIn && !r.clockOut) || null;
+}
+
 function handleClock() {
   if (!isAtWork) { toast('Not at workplace'); return; }
-  const today = todayKey();
-  const rec   = currentUser.records?.find(r => r.date === today);
-  if (!rec?.clockIn) {
-    // Show task entry
-    document.getElementById('task-inputs').innerHTML = `
-      <div class="ig"><label>Task 1</label>
-      <input type="text" class="tinput" placeholder="e.g. Pour foundation Unit 4" maxlength="80"></div>`;
+  const active = getActiveShift();
+  if (!active) {
+    // Start a new shift — show task entry
+    document.getElementById('task-inputs').innerHTML =
+      '<div class="ig"><label>Task 1</label>' +
+      '<input type="text" class="tinput" placeholder="e.g. Pour foundation Unit 4" maxlength="80"></div>';
     openModal('m-taskin');
   } else {
     showClockOutModal();
@@ -753,18 +781,19 @@ function confirmClockIn() {
   const today = todayKey();
   const now   = new Date().toISOString();
   if (!currentUser.records) currentUser.records = [];
-  const rec = { date: today, clockIn: now, clockOut: null, tasks: tasks.map(t => ({ text: t, status: 'pending' })), notes: '' };
+  // Each clock-in creates a brand new record — unlimited shifts per day
+  const rec = { date: today, clockIn: now, clockOut: null, tasks: tasks.map(t => ({ text: t, status: 'pending' })), notes: '', shiftId: 'shift_' + Date.now() };
   currentUser.records.push(rec);
   updateEmp(currentUser);
   postSheet({ type: 'clockIn', ...buildRow(rec) });
   updateHomeStatus();
   renderHomeTasks();
-  toast('✓ Clocked in!');
+  const shiftNum = currentUser.records.filter(r => r.date === today).length;
+  toast('✓ Clocked in! (Shift ' + shiftNum + ')');
 }
 
 function showClockOutModal() {
-  const today = todayKey();
-  const rec   = currentUser.records?.find(r => r.date === today);
+  const rec = getActiveShift();
   if (!rec) return;
   document.getElementById('task-review').innerHTML = rec.tasks.map((t, i) => `
     <div class="task-item">
@@ -776,8 +805,7 @@ function showClockOutModal() {
 }
 
 function cycleTask(i) {
-  const today = todayKey();
-  const rec   = currentUser.records?.find(r => r.date === today);
+  const rec = getActiveShift();
   if (!rec) return;
   const s = ['pending','done','partial'];
   rec.tasks[i].status = s[(s.indexOf(rec.tasks[i].status) + 1) % 3];
@@ -792,9 +820,10 @@ function cycleTask(i) {
 }
 
 function confirmClockOut() {
-  const today = todayKey();
-  const idx   = currentUser.records?.findIndex(r => r.date === today);
-  if (idx === -1 || idx === undefined) return;
+  const active = getActiveShift();
+  if (!active) return;
+  const idx = currentUser.records.findIndex(r => r.shiftId === active.shiftId);
+  if (idx === -1) return;
   currentUser.records[idx].clockOut = new Date().toISOString();
   currentUser.records[idx].notes    = document.getElementById('out-notes').value.trim();
   updateEmp(currentUser);
@@ -802,7 +831,7 @@ function confirmClockOut() {
   postSheet({ type: 'clockOut', ...buildRow(currentUser.records[idx]) });
   updateHomeStatus();
   renderHomeTasks();
-  toast('✓ Clocked out. Great work!');
+  toast('✓ Clocked out. Tap Clock In to start a new shift anytime!');
 }
 
 function buildRow(rec) {
@@ -1297,30 +1326,51 @@ function saveSetting(key) {
 // ════════════════════════════════════════════════
 function openConnectModal() { openModal('m-connect'); }
 
-async function connectWorkspace() {
+function connectWorkspace() {
   const url = document.getElementById('connect-url').value.trim();
   if (!url) { toast('Paste the URL first'); return; }
   const btn = document.getElementById('connect-btn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spin"></span> Connecting…';
-  try {
-    const res  = await fetch(url + '?action=getEmployees');
-    const data = await res.json();
-    if (!data.employees?.length) { toast('No employees found — check URL'); btn.disabled=false; btn.textContent='Connect & Load Employees'; return; }
-    config.webhook = url;
+
+  // Temporarily set webhook so fetchFromSheet can use it
+  const prevWebhook = config.webhook;
+  config.webhook = url;
+
+  fetchFromSheet('getEmployees', {}, function(data) {
+    if (!data || !data.employees || !data.employees.length) {
+      toast('No employees found — check URL');
+      config.webhook = prevWebhook;
+      btn.disabled = false;
+      btn.textContent = 'Connect & Load Employees';
+      return;
+    }
+    // Merge employees
     data.employees.forEach(f => {
       if (!employees.find(e => e.id === f.id))
         employees.push({ id: f.id, name: f.name, records: [], joinedDate: todayKey() });
+      else
+        employees.find(e => e.id === f.id).name = f.name;
     });
+    // Update config from sheet if available
+    if (data.config) {
+      if (data.config.company) config.company = data.config.company;
+      if (data.config.lat)     config.lat     = parseFloat(data.config.lat);
+      if (data.config.lng)     config.lng     = parseFloat(data.config.lng);
+      if (data.config.radius)  config.radius  = parseInt(data.config.radius);
+    }
     save();
     closeModal('m-connect');
-    toast('✓ Connected!');
+    toast('✓ Connected! ' + data.employees.length + ' employees loaded.');
+    btn.disabled = false;
+    btn.textContent = 'Connect & Load Employees';
     showLogin();
-  } catch(e) {
+  }, function() {
     toast('❌ Could not connect — check URL');
-  }
-  btn.disabled = false;
-  btn.textContent = 'Connect & Load Employees';
+    config.webhook = prevWebhook;
+    btn.disabled = false;
+    btn.textContent = 'Connect & Load Employees';
+  });
 }
 
 // ════════════════════════════════════════════════
