@@ -8,905 +8,546 @@
 <meta name="apple-mobile-web-app-title" content="WorkTrack">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
-<title>WorkTrack — Employee Portal</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<title>VOER-Staff 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0a0a0a;
-    --surface: #141414;
-    --surface2: #1e1e1e;
-    --border: #2a2a2a;
-    --accent: #e8ff47;
-    --accent2: #47d4ff;
-    --danger: #ff4747;
-    --success: #47ff8a;
-    --text: #f0f0f0;
-    --muted: #666;
-    --font-display: 'Syne', sans-serif;
-    --font-body: 'DM Sans', sans-serif;
-    --radius: 16px;
-    --radius-sm: 10px;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.5;
-    min-height: 100dvh;
-    overflow-x: hidden;
-  }
-
-  /* SCREEN SYSTEM */
-  .screen { display: none; min-height: 100dvh; flex-direction: column; animation: fadeIn .3s ease; }
-  .screen.active { display: flex; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-
-  /* TYPOGRAPHY */
-  h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; }
-  h2 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
-  h3 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; }
-
-  /* LAYOUT */
-  .container { max-width: 480px; margin: 0 auto; padding: 0 20px; width: 100%; }
-  .header {
-    padding: 56px 20px 20px;
-    max-width: 480px;
-    margin: 0 auto;
-    width: 100%;
-  }
-  .content { flex: 1; padding: 20px; max-width: 480px; margin: 0 auto; width: 100%; }
-
-  /* NAV */
-  .bottom-nav {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: space-around;
-    padding: 12px 0 28px;
-    z-index: 100;
-  }
-  .nav-item {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 4px; cursor: pointer; padding: 4px 16px;
-    color: var(--muted); font-size: 11px; font-family: var(--font-display);
-    font-weight: 600; letter-spacing: .04em; transition: color .2s;
-  }
-  .nav-item.active { color: var(--accent); }
-  .nav-item svg { width: 22px; height: 22px; }
-
-  /* CARDS */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 12px;
-  }
-  .card-accent { border-color: var(--accent); border-width: 1.5px; }
-
-  /* BUTTONS */
-  .btn {
-    width: 100%; padding: 16px;
-    border: none; border-radius: var(--radius-sm);
-    font-family: var(--font-display);
-    font-size: 15px; font-weight: 700;
-    letter-spacing: .04em;
-    cursor: pointer; transition: all .2s;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-  }
-  .btn-primary { background: var(--accent); color: #0a0a0a; }
-  .btn-primary:active { transform: scale(.97); background: #d4eb3a; }
-  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-  .btn-danger { background: var(--danger); color: #fff; }
-  .btn-danger:active { transform: scale(.97); }
-  .btn-ghost { background: transparent; color: var(--muted); font-size: 13px; }
-  .btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
-
-  /* INPUTS */
-  .input-group { margin-bottom: 16px; }
-  label { display: block; font-size: 12px; font-family: var(--font-display); font-weight: 600; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
-  input, select, textarea {
-    width: 100%; padding: 14px 16px;
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); color: var(--text);
-    font-family: var(--font-body); font-size: 15px;
-    transition: border-color .2s;
-    -webkit-appearance: none;
-  }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
-  textarea { resize: none; min-height: 100px; }
-  select option { background: var(--surface2); }
-
-  /* STATUS BADGE */
-  .badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 4px 12px; border-radius: 100px;
-    font-size: 12px; font-family: var(--font-display); font-weight: 700;
-    letter-spacing: .04em;
-  }
-  .badge-in { background: rgba(71,255,138,.15); color: var(--success); border: 1px solid rgba(71,255,138,.3); }
-  .badge-out { background: rgba(102,102,102,.15); color: var(--muted); border: 1px solid var(--border); }
-  .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-
-  /* CLOCK DISPLAY */
-  .clock-hero {
-    text-align: center; padding: 32px 0 24px;
-  }
-  .clock-time {
-    font-family: var(--font-display);
-    font-size: 3.5rem; font-weight: 800;
-    letter-spacing: -.04em; line-height: 1;
-    color: var(--text);
-  }
-  .clock-date { color: var(--muted); font-size: 14px; margin-top: 6px; }
-
-  /* LOCATION STATUS */
-  .loc-status {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 16px; border-radius: var(--radius-sm);
-    font-size: 13px;
-  }
-  .loc-ok { background: rgba(71,255,138,.08); border: 1px solid rgba(71,255,138,.2); color: var(--success); }
-  .loc-err { background: rgba(255,71,71,.08); border: 1px solid rgba(255,71,71,.2); color: var(--danger); }
-  .loc-checking { background: rgba(71,212,255,.08); border: 1px solid rgba(71,212,255,.2); color: var(--accent2); }
-
-  /* TASK LIST */
-  .task-item {
-    display: flex; align-items: flex-start; gap: 12px;
-    padding: 12px 0; border-bottom: 1px solid var(--border);
-  }
-  .task-item:last-child { border-bottom: none; }
-  .task-check {
-    width: 22px; height: 22px; border-radius: 6px;
-    border: 2px solid var(--border); flex-shrink: 0;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: all .15s; background: transparent;
-    margin-top: 1px;
-  }
-  .task-check.done { background: var(--success); border-color: var(--success); }
-  .task-check.partial { background: var(--accent); border-color: var(--accent); }
-  .task-text { flex: 1; font-size: 14px; }
-  .task-text.done-text { text-decoration: line-through; color: var(--muted); }
-
-  /* TEAM FEED */
-  .feed-item {
-    display: flex; gap: 14px;
-    padding: 16px 0; border-bottom: 1px solid var(--border);
-  }
-  .feed-item:last-child { border-bottom: none; }
-  .avatar {
-    width: 40px; height: 40px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-display); font-size: 14px; font-weight: 800;
-    flex-shrink: 0; letter-spacing: -.02em;
-  }
-  .feed-content { flex: 1; min-width: 0; }
-  .feed-name { font-family: var(--font-display); font-size: 14px; font-weight: 700; }
-  .feed-meta { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-  .feed-tasks { font-size: 13px; color: #ccc; }
-  .feed-task-tag {
-    display: inline-block; padding: 2px 8px; border-radius: 4px;
-    background: var(--surface2); border: 1px solid var(--border);
-    font-size: 11px; margin: 2px 2px 0 0;
-  }
-
-  /* LOGIN */
-  .login-brand {
-    text-align: center; padding: 60px 0 40px;
-  }
-  .brand-icon {
-    width: 72px; height: 72px; border-radius: 20px;
-    background: var(--accent); display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 16px;
-    font-family: var(--font-display); font-size: 28px; font-weight: 800; color: #0a0a0a;
-  }
-
-  /* SETUP SCREEN */
-  .setup-step { display: none; }
-  .setup-step.active { display: block; }
-  .step-indicator { display: flex; gap: 6px; margin-bottom: 24px; }
-  .step-dot { height: 3px; border-radius: 2px; background: var(--border); flex: 1; transition: background .3s; }
-  .step-dot.done { background: var(--accent); }
-
-  /* PROFILE */
-  .profile-header {
-    display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
-  }
-  .profile-avatar-lg {
-    width: 60px; height: 60px; border-radius: 18px;
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--font-display); font-size: 24px; font-weight: 800;
-  }
-  .stat-row { display: flex; gap: 10px; margin-bottom: 12px; }
-  .stat-card {
-    flex: 1; background: var(--surface2); border-radius: var(--radius-sm);
-    padding: 14px 12px; text-align: center;
-  }
-  .stat-num { font-family: var(--font-display); font-size: 1.6rem; font-weight: 800; color: var(--accent); }
-  .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
-
-  /* MODAL */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,.8);
-    z-index: 200; display: none;
-    align-items: flex-end;
-    animation: fadeIn .2s ease;
-  }
-  .modal-overlay.open { display: flex; }
-  .modal {
-    background: var(--surface);
-    border-radius: 24px 24px 0 0;
-    padding: 24px 24px 40px;
-    width: 100%; max-height: 90dvh;
-    overflow-y: auto;
-    animation: slideUp .3s ease;
-  }
-  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-  .modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
-
-  /* TOAST */
-  .toast {
-    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
-    background: var(--surface2); border: 1px solid var(--border);
-    padding: 12px 20px; border-radius: 100px;
-    font-size: 13px; font-family: var(--font-display); font-weight: 600;
-    z-index: 300; white-space: nowrap;
-    animation: toastIn .3s ease;
-    display: none;
-  }
-  .toast.show { display: block; }
-  @keyframes toastIn { from { opacity: 0; top: 40px; } to { opacity: 1; top: 60px; } }
-
-  /* SPINNER */
-  .spinner {
-    width: 20px; height: 20px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,.2);
-    border-top-color: #fff;
-    animation: spin .6s linear infinite;
-    display: inline-block;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .divider { height: 1px; background: var(--border); margin: 20px 0; }
-  .pb-nav { padding-bottom: 96px; }
-  .text-muted { color: var(--muted); }
-  .text-success { color: var(--success); }
-  .text-danger { color: var(--danger); }
-  .text-accent { color: var(--accent); }
-  .mt-8 { margin-top: 8px; }
-  .mt-12 { margin-top: 12px; }
-  .mt-16 { margin-top: 16px; }
-  .flex { display: flex; }
-  .items-center { align-items: center; }
-  .justify-between { justify-content: space-between; }
-  .gap-8 { gap: 8px; }
-  .gap-12 { gap: 12px; }
-  .small { font-size: 13px; }
-  .tag {
-    padding: 3px 10px; border-radius: 6px;
-    background: var(--surface2); border: 1px solid var(--border);
-    font-size: 11px; font-family: var(--font-display); font-weight: 600;
-  }
-
-  /* ── ADMIN DASHBOARD ── */
-  .admin-nav {
-    background: linear-gradient(135deg, #1a1a00, #0a0a0a);
-    border-bottom: 2px solid var(--accent);
-  }
-  .admin-header {
-    padding: 56px 20px 16px;
-    max-width: 480px; margin: 0 auto; width: 100%;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .admin-badge {
-    background: var(--accent); color: #0a0a0a;
-    font-family: var(--font-display); font-size: 10px; font-weight: 800;
-    letter-spacing: .1em; padding: 3px 8px; border-radius: 4px;
-    text-transform: uppercase;
-  }
-  .admin-tabs {
-    display: flex; gap: 0;
-    background: var(--surface2); border-radius: var(--radius-sm);
-    padding: 4px; margin-bottom: 20px;
-  }
-  .admin-tab {
-    flex: 1; padding: 9px 6px; border: none; background: transparent;
-    color: var(--muted); font-family: var(--font-display); font-size: 12px;
-    font-weight: 700; letter-spacing: .04em; cursor: pointer;
-    border-radius: 8px; transition: all .2s;
-  }
-  .admin-tab.active { background: var(--accent); color: #0a0a0a; }
-  .admin-panel { display: none; }
-  .admin-panel.active { display: block; }
-  .emp-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 16px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: var(--radius-sm);
-    margin-bottom: 8px;
-  }
-  .emp-row-info { flex: 1; min-width: 0; }
-  .emp-row-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; }
-  .emp-row-meta { font-size: 12px; color: var(--muted); }
-  .emp-row-actions { display: flex; gap: 6px; }
-  .icon-btn {
-    width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
-    background: var(--surface2); color: var(--text); cursor: pointer;
-    display: flex; align-items: center; justify-content: center; font-size: 15px;
-    transition: all .15s;
-  }
-  .icon-btn:active { transform: scale(.92); }
-  .icon-btn.danger { border-color: rgba(255,71,71,.3); color: var(--danger); }
-  .live-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: var(--success); flex-shrink: 0;
-    box-shadow: 0 0 6px var(--success);
-    animation: pulse 2s infinite;
-  }
-  .offline-dot { background: var(--muted); box-shadow: none; animation: none; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-  .summary-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 10px; margin-bottom: 16px;
-  }
-  .summary-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); padding: 16px 14px;
-  }
-  .summary-num {
-    font-family: var(--font-display); font-size: 2rem;
-    font-weight: 800; line-height: 1;
-  }
-  .summary-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
-  .settings-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 0; border-bottom: 1px solid var(--border);
-  }
-  .settings-row:last-child { border-bottom: none; }
-  .settings-label { font-size: 14px; font-weight: 500; }
-  .settings-val { font-size: 13px; color: var(--muted); }
-  .inline-edit { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
-  .inline-edit input { flex: 1; padding: 10px 12px; font-size: 14px; }
-  .inline-edit button { padding: 10px 16px; white-space: nowrap; width: auto; font-size: 13px; }
+:root {
+  --bg:#0a0a0a; --surface:#141414; --surface2:#1e1e1e;
+  --border:#2a2a2a; --accent:#e8ff47; --accent2:#47d4ff;
+  --danger:#ff4747; --success:#47ff8a; --text:#f0f0f0; --muted:#666;
+  --fd:'Syne',sans-serif; --fb:'DM Sans',sans-serif;
+  --r:16px; --rs:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);font-size:15px;line-height:1.5;min-height:100dvh;overflow-x:hidden}
+.screen{display:none;min-height:100dvh;flex-direction:column;animation:fadeIn .3s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+h1{font-family:var(--fd);font-size:2rem;font-weight:800;letter-spacing:-.03em}
+h2{font-family:var(--fd);font-size:1.4rem;font-weight:700;letter-spacing:-.02em}
+h3{font-family:var(--fd);font-size:1.1rem;font-weight:600}
+.hdr{padding:56px 20px 20px;max-width:480px;margin:0 auto;width:100%}
+.content{flex:1;padding:20px;max-width:480px;margin:0 auto;width:100%;padding-bottom:100px}
+/* NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;padding:12px 0 28px;z-index:100}
+.ni{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px 16px;color:var(--muted);font-size:11px;font-family:var(--fd);font-weight:600;letter-spacing:.04em;transition:color .2s}
+.ni.active{color:var(--accent)}
+.ni svg{width:22px;height:22px}
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:12px}
+/* BUTTONS */
+.btn{width:100%;padding:16px;border:none;border-radius:var(--rs);font-family:var(--fd);font-size:15px;font-weight:700;letter-spacing:.04em;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--accent);color:#0a0a0a}
+.btn-primary:active{transform:scale(.97)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:active{transform:scale(.97)}
+.btn-ghost{background:transparent;color:var(--muted);font-size:13px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+/* INPUTS */
+.ig{margin-bottom:16px}
+label{display:block;font-size:12px;font-family:var(--fd);font-weight:600;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+input,select,textarea{width:100%;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);font-family:var(--fb);font-size:15px;transition:border-color .2s;-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+textarea{resize:none;min-height:90px}
+select option{background:var(--surface2)}
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;font-size:12px;font-family:var(--fd);font-weight:700;letter-spacing:.04em}
+.badge-in{background:rgba(71,255,138,.15);color:var(--success);border:1px solid rgba(71,255,138,.3)}
+.badge-out{background:rgba(102,102,102,.15);color:var(--muted);border:1px solid var(--border)}
+.bdot{width:7px;height:7px;border-radius:50%;background:currentColor}
+/* CLOCK */
+.clock-hero{text-align:center;padding:28px 0 20px}
+.clock-time{font-family:var(--fd);font-size:3.5rem;font-weight:800;letter-spacing:-.04em;line-height:1}
+.clock-date{color:var(--muted);font-size:14px;margin-top:6px}
+/* LOC STATUS */
+.loc{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:var(--rs);font-size:13px;margin-bottom:16px}
+.loc-ok{background:rgba(71,255,138,.08);border:1px solid rgba(71,255,138,.2);color:var(--success)}
+.loc-err{background:rgba(255,71,71,.08);border:1px solid rgba(255,71,71,.2);color:var(--danger)}
+.loc-chk{background:rgba(71,212,255,.08);border:1px solid rgba(71,212,255,.2);color:var(--accent2)}
+/* TASK ITEMS */
+.task-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.task-item:last-child{border-bottom:none}
+.tcheck{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;background:transparent;margin-top:1px}
+.tcheck.done{background:var(--success);border-color:var(--success)}
+.tcheck.partial{background:var(--accent);border-color:var(--accent)}
+/* FEED */
+.feed-item{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border)}
+.feed-item:last-child{border-bottom:none}
+.avatar{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:14px;font-weight:800;flex-shrink:0}
+.feed-content{flex:1;min-width:0}
+/* PROFILE */
+.stat-row{display:flex;gap:10px;margin-bottom:12px}
+.stat-card{flex:1;background:var(--surface2);border-radius:var(--rs);padding:14px 12px;text-align:center}
+.stat-num{font-family:var(--fd);font-size:1.6rem;font-weight:800;color:var(--accent)}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:none;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:24px 24px 0 0;padding:24px 24px 48px;width:100%;max-height:90dvh;overflow-y:auto;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+/* TOAST */
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);padding:12px 20px;border-radius:100px;font-size:13px;font-family:var(--fd);font-weight:600;z-index:300;white-space:nowrap;display:none}
+.toast.show{display:block}
+/* SPINNER */
+.spin{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;animation:spinning .6s linear infinite;display:inline-block}
+@keyframes spinning{to{transform:rotate(360deg)}}
+/* ADMIN */
+.admin-tabs{display:flex;gap:0;background:var(--surface2);border-radius:var(--rs);padding:4px;margin-bottom:20px}
+.atab{flex:1;padding:9px 6px;border:none;background:transparent;color:var(--muted);font-family:var(--fd);font-size:11px;font-weight:700;letter-spacing:.04em;cursor:pointer;border-radius:8px;transition:all .2s}
+.atab.active{background:var(--accent);color:#0a0a0a}
+.apanel{display:none}
+.apanel.active{display:block}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:16px 14px}
+.sum-num{font-family:var(--fd);font-size:2rem;font-weight:800;line-height:1}
+.sum-label{font-size:11px;color:var(--muted);margin-top:4px}
+.emp-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:8px}
+.emp-row-info{flex:1;min-width:0}
+.ibtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ldot-on{background:var(--success);box-shadow:0 0 6px var(--success)}
+.ldot-done{background:var(--accent2);box-shadow:0 0 6px var(--accent2)}
+.ldot-off{background:var(--muted)}
+.set-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+.set-row:last-child{border-bottom:none}
+.iedit{display:none;gap:8px;align-items:center;margin-top:8px}
+.iedit input{flex:1;padding:10px 12px;font-size:14px}
+.iedit .btn{width:auto;padding:10px 14px;font-size:13px}
+.divider{height:1px;background:var(--border);margin:20px 0}
+.mt8{margin-top:8px} .mt12{margin-top:12px} .mt16{margin-top:16px}
+.flex{display:flex} .ic{align-items:center} .jb{justify-content:space-between}
+.small{font-size:13px} .text-muted{color:var(--muted)} .text-success{color:var(--success)}
+.text-accent{color:var(--accent)} .text-danger{color:var(--danger)}
+.tag{padding:2px 8px;border-radius:5px;background:var(--surface2);border:1px solid var(--border);font-size:11px;font-family:var(--fd);font-weight:600;display:inline-block;margin:2px 2px 0 0}
+.brand-icon{width:72px;height:72px;border-radius:20px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-family:var(--fd);font-size:28px;font-weight:800;color:#0a0a0a}
+.login-brand{text-align:center;padding:60px 0 36px}
 </style>
 </head>
 <body>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- ═══════════════════════════════════════════
-     SCREEN: SETUP (Admin first-time config)
-════════════════════════════════════════════ -->
-<div class="screen active" id="screen-setup">
-  <div class="header">
+<!-- ══════════════════════ LOGIN ══════════════════════ -->
+<div class="screen active" id="screen-login">
+  <div class="hdr">
     <div class="login-brand">
       <div class="brand-icon">WT</div>
-      <h1>WorkTrack</h1>
-      <p class="text-muted mt-8">Admin Setup — First Time</p>
-    </div>
-  </div>
-  <div class="content pb-nav">
-    <div class="step-indicator" id="step-dots"></div>
-
-    <!-- Step 1: Workspace Name -->
-    <div class="setup-step active" id="step-1">
-      <h2>Name your workspace</h2>
-      <p class="text-muted small mt-8" style="margin-bottom:20px">This appears on every employee's home screen.</p>
-      <div class="input-group">
-        <label>Company / Team Name</label>
-        <input type="text" id="setup-company" placeholder="e.g. GRAY Concrete Co" maxlength="40">
-      </div>
-      <button class="btn btn-primary" onclick="setupNext(1)">Continue →</button>
-    </div>
-
-    <!-- Step 2: Workplace Location -->
-    <div class="setup-step" id="step-2">
-      <h2>Set workplace location</h2>
-      <p class="text-muted small mt-8" style="margin-bottom:20px">Employees must be within this radius to clock in/out.</p>
-      <div class="input-group">
-        <label>Workplace Latitude</label>
-        <input type="number" id="setup-lat" placeholder="e.g. 33.7701" step="0.0001">
-      </div>
-      <div class="input-group">
-        <label>Workplace Longitude</label>
-        <input type="number" id="setup-lng" placeholder="e.g. -117.8676" step="0.0001">
-      </div>
-      <div class="input-group">
-        <label>Allowed Radius (meters)</label>
-        <input type="number" id="setup-radius" placeholder="e.g. 200" value="200">
-      </div>
-      <button class="btn btn-secondary" style="margin-bottom:10px" onclick="useMyLocation()">📍 Use My Current Location</button>
-      <button class="btn btn-primary" onclick="setupNext(2)">Continue →</button>
-    </div>
-
-    <!-- Step 3: Google Sheets Webhook -->
-    <div class="setup-step" id="step-3">
-      <h2>Connect Google Sheets</h2>
-      <p class="text-muted small mt-8" style="margin-bottom:12px">Paste your Google Apps Script Web App URL to store all data.</p>
-      <div class="card" style="margin-bottom:16px; background: rgba(71,212,255,.05); border-color: rgba(71,212,255,.2);">
-        <p style="font-size:12px; color: var(--accent2); line-height:1.6">
-          <strong>How to get this URL:</strong><br>
-          1. Open Google Sheets → Extensions → Apps Script<br>
-          2. Paste the provided Code.gs script<br>
-          3. Deploy → New deployment → Web App<br>
-          4. Set "Who has access" to <em>Anyone</em><br>
-          5. Copy the Web App URL here
-        </p>
-      </div>
-      <div class="input-group">
-        <label>Apps Script Web App URL</label>
-        <input type="url" id="setup-webhook" placeholder="https://script.google.com/macros/s/...">
-      </div>
-      <button class="btn btn-primary" onclick="setupNext(3)">Continue →</button>
-      <button class="btn btn-ghost mt-8" onclick="setupNext(3, true)">Skip for now (use local storage only)</button>
-    </div>
-
-    <!-- Step 4: Add Employees -->
-    <div class="setup-step" id="step-4">
-      <h2>Add employees</h2>
-      <p class="text-muted small mt-8" style="margin-bottom:16px">Add up to 20 team members. They'll use their PIN to log in.</p>
-      <div id="employee-list-setup" style="margin-bottom:12px"></div>
-      <div id="add-emp-form" class="card" style="margin-bottom:12px">
-        <div class="input-group">
-          <label>Full Name</label>
-          <input type="text" id="new-emp-name" placeholder="Jane Smith" maxlength="30">
-        </div>
-        <div class="input-group" style="margin-bottom:0">
-          <label>4-Digit PIN</label>
-          <input type="number" id="new-emp-pin" placeholder="1234" maxlength="4" max="9999">
-        </div>
-      </div>
-      <button class="btn btn-secondary" style="margin-bottom:10px" onclick="addEmployee()">+ Add Employee</button>
-      <button class="btn btn-primary" id="finish-setup-btn" onclick="finishSetup()" disabled>Launch WorkTrack →</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     SCREEN: LOGIN
-════════════════════════════════════════════ -->
-<div class="screen" id="screen-login">
-  <div class="header">
-    <div class="login-brand">
-      <div class="brand-icon">WT</div>
-      <h1 id="login-company-name">WorkTrack</h1>
-      <p class="text-muted mt-8">Sign in to your account</p>
+      <h1 id="login-title">VOER-Staff 2026</h1>
+      <p class="text-muted mt8" style="margin-top:8px">Sign in to your account</p>
     </div>
   </div>
   <div class="content">
-    <div class="input-group">
-      <label>Select Employee</label>
-      <select id="login-employee">
-        <option value="">— Choose your name —</option>
-      </select>
+    <div class="ig">
+      <label>Select Your Name</label>
+      <select id="login-emp"><option value="">⏳ Loading employees…</option></select>
     </div>
-    <div class="input-group">
+    <div class="ig">
       <label>4-Digit PIN</label>
       <input type="password" id="login-pin" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*">
     </div>
-    <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+    <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Sign In</button>
     <div class="divider"></div>
-    <button class="btn btn-ghost" onclick="showConnectSheet()">🔗 Connect to a workspace</button>
-    <button class="btn btn-ghost" style="margin-top:4px" onclick="showAdminReset()">Admin / Reset Setup</button>
+    <button class="btn btn-ghost" onclick="openAdminLogin()">🔐 Admin Login</button>
+    <button class="btn btn-ghost mt8" onclick="openConnectModal()" style="margin-top:8px">🔗 Connect to Workspace</button>
   </div>
 </div>
 
-<!-- ── MODAL: Employee connects to existing workspace ── -->
-<div class="modal-overlay" id="modal-connect">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <h2 style="margin-bottom:6px">Connect to Workspace</h2>
-    <p class="text-muted small" style="margin-bottom:20px">Ask your admin for the workspace URL and paste it here. You only need to do this once.</p>
-    <div class="input-group">
-      <label>Workspace / Apps Script URL</label>
-      <input type="url" id="connect-url" placeholder="https://script.google.com/macros/s/…">
-    </div>
-    <button class="btn btn-primary" onclick="connectWorkspace()">Connect & Load Employees</button>
-    <button class="btn btn-ghost mt-8" onclick="document.getElementById('modal-connect').classList.remove('open')">Cancel</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     SCREEN: MAIN APP (Clock In/Out)
-════════════════════════════════════════════ -->
+<!-- ══════════════════════ HOME ══════════════════════ -->
 <div class="screen" id="screen-home">
-  <div class="header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-direction:row; padding-top:56px">
+  <div class="hdr flex jb ic" style="flex-direction:row;padding-top:56px">
     <div>
-      <p class="text-muted small" id="home-company"></p>
+      <p class="text-muted small" id="home-co"></p>
       <h2 id="home-greeting">Good morning</h2>
     </div>
-    <div id="home-status-badge"></div>
+    <div id="home-badge"></div>
   </div>
-  <div class="content pb-nav">
-    <!-- Clock display -->
+  <div class="content">
     <div class="clock-hero">
       <div class="clock-time" id="live-clock">--:--</div>
       <div class="clock-date" id="live-date"></div>
     </div>
-
-    <!-- Location status -->
-    <div id="loc-status-bar" class="loc-status loc-checking" style="margin-bottom:16px">
-      <span class="spinner" style="width:14px;height:14px;border-width:2px"></span>
+    <div class="loc loc-chk" id="loc-bar">
+      <span class="spin" style="width:14px;height:14px;border-width:2px"></span>
       <span>Checking location…</span>
     </div>
-
-    <!-- Clock in/out button -->
-    <button class="btn btn-primary" id="clock-btn" onclick="handleClockAction()" disabled style="margin-bottom:12px; height:60px; font-size:17px">
-      Clock In
-    </button>
-    <button class="btn btn-secondary" id="refresh-loc-btn" onclick="checkLocation()">
-      🔄 Refresh Location
-    </button>
-
-    <!-- Today's tasks preview -->
-    <div id="todays-tasks-card" style="display:none; margin-top:20px">
-      <div class="flex justify-between items-center" style="margin-bottom:12px">
+    <button class="btn btn-primary" id="clock-btn" onclick="handleClock()" disabled style="height:60px;font-size:17px;margin-bottom:12px">Clock In</button>
+    <button class="btn btn-secondary" onclick="checkLocation()">🔄 Refresh Location</button>
+    <div id="tasks-card" style="display:none;margin-top:20px">
+      <div class="flex jb ic" style="margin-bottom:12px">
         <h3>Today's Tasks</h3>
-        <span id="task-count-badge" class="tag"></span>
+        <span id="tasks-badge" style="font-size:12px;color:var(--muted)"></span>
       </div>
-      <div id="todays-tasks-list"></div>
+      <div id="tasks-list"></div>
     </div>
-
-    <!-- Hours today -->
-    <div id="hours-today-card" style="display:none; margin-top:12px">
+    <div id="hours-card" style="display:none;margin-top:12px">
       <div class="card">
-        <div class="flex justify-between items-center">
+        <div class="flex jb ic">
           <span class="text-muted small">Hours today</span>
-          <span id="hours-today-val" class="text-accent" style="font-family:var(--font-display);font-weight:800;font-size:1.2rem">0h 0m</span>
+          <span id="hours-val" style="font-family:var(--fd);font-weight:800;font-size:1.2rem;color:var(--accent)">0h 0m</span>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- Bottom Nav -->
-  <nav class="bottom-nav">
-    <div class="nav-item active" onclick="switchTab('home')" id="tab-home">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Home
+  <nav class="bnav">
+    <div class="ni active" id="hn-home" onclick="goTab('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
     </div>
-    <div class="nav-item" onclick="switchTab('team')" id="tab-team">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-      Team
+    <div class="ni" id="hn-team" onclick="goTab('team')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Team
     </div>
-    <div class="nav-item" onclick="switchTab('profile')" id="tab-profile">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      Profile
+    <div class="ni" id="hn-profile" onclick="goTab('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Me
     </div>
   </nav>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     SCREEN: TEAM FEED
-════════════════════════════════════════════ -->
+<!-- ══════════════════════ TEAM ══════════════════════ -->
 <div class="screen" id="screen-team">
-  <div class="header">
+  <div class="hdr">
     <h2>Team Today</h2>
-    <p class="text-muted small mt-8" id="team-date-label"></p>
+    <p class="text-muted small mt8" id="team-date" style="margin-top:8px"></p>
   </div>
-  <div class="content pb-nav" id="team-feed">
-    <p class="text-muted small">Loading team…</p>
-  </div>
-  <nav class="bottom-nav">
-    <div class="nav-item" onclick="switchTab('home')" id="tab2-home">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Home
+  <div class="content" id="team-feed"><p class="text-muted small">Loading…</p></div>
+  <nav class="bnav">
+    <div class="ni" id="tn-home" onclick="goTab('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
     </div>
-    <div class="nav-item active" onclick="switchTab('team')" id="tab2-team">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-      Team
+    <div class="ni active" id="tn-team" onclick="goTab('team')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Team
     </div>
-    <div class="nav-item" onclick="switchTab('profile')" id="tab2-profile">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      Profile
+    <div class="ni" id="tn-profile" onclick="goTab('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Me
     </div>
   </nav>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     SCREEN: PROFILE
-════════════════════════════════════════════ -->
+<!-- ══════════════════════ PROFILE ══════════════════════ -->
 <div class="screen" id="screen-profile">
-  <div class="header">
-    <h2>My Profile</h2>
-  </div>
-  <div class="content pb-nav">
-    <div class="profile-header">
-      <div class="profile-avatar-lg" id="profile-avatar-lg"></div>
+  <div class="hdr"><h2>My Profile</h2></div>
+  <div class="content">
+    <div class="flex ic" style="gap:16px;margin-bottom:24px">
+      <div id="prof-avatar" class="avatar" style="width:60px;height:60px;border-radius:18px;font-size:22px"></div>
       <div>
-        <div style="font-family:var(--font-display);font-size:1.2rem;font-weight:800" id="profile-name-lg"></div>
-        <div class="text-muted small" id="profile-joined"></div>
+        <div id="prof-name" style="font-family:var(--fd);font-size:1.2rem;font-weight:800"></div>
+        <div id="prof-joined" class="text-muted small"></div>
       </div>
     </div>
-
     <div class="stat-row">
-      <div class="stat-card">
-        <div class="stat-num" id="stat-days">0</div>
-        <div class="stat-label">Days Worked</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-hours">0</div>
-        <div class="stat-label">Total Hours</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-tasks">0</div>
-        <div class="stat-label">Tasks Done</div>
-      </div>
+      <div class="stat-card"><div class="stat-num" id="s-days">0</div><div style="font-size:11px;color:var(--muted);margin-top:4px">Days Worked</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-hrs">0</div><div style="font-size:11px;color:var(--muted);margin-top:4px">Total Hours</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-tasks">0</div><div style="font-size:11px;color:var(--muted);margin-top:4px">Tasks Done</div></div>
     </div>
-
     <h3 style="margin:20px 0 12px">Recent History</h3>
-    <div id="profile-history"></div>
-
+    <div id="prof-history"></div>
     <div class="divider"></div>
     <button class="btn btn-secondary" onclick="doLogout()">Sign Out</button>
   </div>
-  <nav class="bottom-nav">
-    <div class="nav-item" onclick="switchTab('home')" id="tab3-home">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Home
+  <nav class="bnav">
+    <div class="ni" id="pn-home" onclick="goTab('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
     </div>
-    <div class="nav-item" onclick="switchTab('team')" id="tab3-team">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-      Team
+    <div class="ni" id="pn-team" onclick="goTab('team')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Team
     </div>
-    <div class="nav-item active" onclick="switchTab('profile')" id="tab3-profile">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      Profile
+    <div class="ni active" id="pn-profile" onclick="goTab('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Me
     </div>
   </nav>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     MODAL: Task Entry (Clock In)
-════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal-tasks-in">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <h2 style="margin-bottom:6px">What's on your plate today?</h2>
-    <p class="text-muted small" style="margin-bottom:20px">List your tasks for today. Your team can see these.</p>
-    <div id="task-inputs-container">
-      <div class="input-group">
-        <label>Task 1</label>
-        <input type="text" class="task-input" placeholder="e.g. Pour foundation — Unit 4" maxlength="80">
-      </div>
+<!-- ══════════════════════ ADMIN ══════════════════════ -->
+<div class="screen" id="screen-admin">
+  <div class="hdr flex jb ic" style="flex-direction:row;padding-top:56px;background:linear-gradient(135deg,#1a1a00,#0a0a0a);border-bottom:2px solid var(--accent)">
+    <div>
+      <span style="background:var(--accent);color:#0a0a0a;font-family:var(--fd);font-size:10px;font-weight:800;letter-spacing:.1em;padding:3px 8px;border-radius:4px">ADMIN</span>
+      <h2 style="margin-top:6px">VOER-Staff 2026</h2>
     </div>
-    <button class="btn btn-secondary" style="margin-bottom:16px" onclick="addTaskInput()">+ Add another task</button>
+    <button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:13px" onclick="exitAdmin()">← Exit</button>
+  </div>
+  <div style="padding:12px 20px 0;max-width:480px;margin:0 auto;width:100%">
+    <div class="admin-tabs">
+      <button class="atab active" onclick="aTab('overview')">Overview</button>
+      <button class="atab" onclick="aTab('employees')">Employees</button>
+      <button class="atab" onclick="aTab('today')">Today</button>
+      <button class="atab" onclick="aTab('settings')">Settings</button>
+    </div>
+  </div>
+  <div class="content" style="padding-top:0">
+
+    <!-- Overview -->
+    <div class="apanel active" id="ap-overview">
+      <div class="sum-grid">
+        <div class="sum-card"><div class="sum-num text-accent" id="ov-in">0</div><div class="sum-label">Clocked In</div></div>
+        <div class="sum-card"><div class="sum-num" id="ov-total">0</div><div class="sum-label">Total Employees</div></div>
+        <div class="sum-card"><div class="sum-num text-success" id="ov-done">0</div><div class="sum-label">Done Today</div></div>
+        <div class="sum-card"><div class="sum-num" id="ov-out">0</div><div class="sum-label">Not Started</div></div>
+      </div>
+      <h3 style="margin-bottom:12px">Live Status</h3>
+      <div id="ov-list"></div>
+    </div>
+
+    <!-- Employees -->
+    <div class="apanel" id="ap-employees">
+      <button class="btn btn-primary" style="margin-bottom:16px" onclick="openAddEmp()">+ Add New Employee</button>
+      <div id="emp-list"></div>
+      <p class="text-muted small" style="text-align:center;margin-top:8px" id="emp-count"></p>
+    </div>
+
+    <!-- Today -->
+    <div class="apanel" id="ap-today">
+      <h3 id="today-hdr" style="margin-bottom:4px"></h3>
+      <p class="text-muted small" style="margin-bottom:16px">Full task breakdown</p>
+      <div id="today-list"></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="apanel" id="ap-settings">
+      <div class="card">
+        <h3 style="margin-bottom:16px">Workplace Settings</h3>
+        <div class="set-row">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500">Company Name</div>
+            <div class="text-muted small" id="sv-company"></div>
+            <div class="iedit" id="se-company">
+              <input type="text" id="si-company" maxlength="40">
+              <button class="btn btn-primary" onclick="saveSetting('company')">Save</button>
+            </div>
+          </div>
+          <button class="ibtn" onclick="toggleEdit('company')">✏️</button>
+        </div>
+        <div class="set-row">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500">Latitude</div>
+            <div class="text-muted small" id="sv-lat"></div>
+            <div class="iedit" id="se-lat">
+              <input type="number" id="si-lat" step="0.000001">
+              <button class="btn btn-primary" onclick="saveSetting('lat')">Save</button>
+            </div>
+          </div>
+          <button class="ibtn" onclick="toggleEdit('lat')">✏️</button>
+        </div>
+        <div class="set-row">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500">Longitude</div>
+            <div class="text-muted small" id="sv-lng"></div>
+            <div class="iedit" id="se-lng">
+              <input type="number" id="si-lng" step="0.000001">
+              <button class="btn btn-primary" onclick="saveSetting('lng')">Save</button>
+            </div>
+          </div>
+          <button class="ibtn" onclick="toggleEdit('lng')">✏️</button>
+        </div>
+        <div class="set-row">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500">Clock-In Radius</div>
+            <div class="text-muted small" id="sv-radius"></div>
+            <div class="iedit" id="se-radius">
+              <input type="number" id="si-radius" min="50" max="9999">
+              <button class="btn btn-primary" onclick="saveSetting('radius')">Save</button>
+            </div>
+          </div>
+          <button class="ibtn" onclick="toggleEdit('radius')">✏️</button>
+        </div>
+        <div class="set-row">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:500">Admin PIN</div>
+            <div class="text-muted small">••••</div>
+            <div class="iedit" id="se-adminPin">
+              <input type="number" id="si-adminPin" maxlength="4" max="9999" placeholder="New PIN">
+              <button class="btn btn-primary" onclick="saveSetting('adminPin')">Save</button>
+            </div>
+          </div>
+          <button class="ibtn" onclick="toggleEdit('adminPin')">✏️</button>
+        </div>
+      </div>
+      <button class="btn btn-danger" style="margin-top:8px" onclick="exitAdmin()">Exit Admin</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════ MODALS ══════════════════════ -->
+
+<!-- Admin Login -->
+<div class="modal-overlay" id="m-admin">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2 style="margin-bottom:6px">Admin Access</h2>
+    <p class="text-muted small" style="margin-bottom:20px">Enter your admin PIN</p>
+    <div class="ig">
+      <label>Admin PIN</label>
+      <input type="password" id="admin-pin" placeholder="••••" maxlength="4" inputmode="numeric" onkeydown="if(event.key==='Enter')submitAdmin()">
+    </div>
+    <button class="btn btn-primary" onclick="submitAdmin()">Enter Dashboard</button>
+    <button class="btn btn-ghost mt8" style="margin-top:8px" onclick="closeModal('m-admin')">Cancel</button>
+  </div>
+</div>
+
+<!-- Connect Workspace -->
+<div class="modal-overlay" id="m-connect">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2 style="margin-bottom:6px">Connect Workspace</h2>
+    <p class="text-muted small" style="margin-bottom:20px">Paste your Apps Script URL to load employees on this device.</p>
+    <div class="ig">
+      <label>Apps Script Web App URL</label>
+      <input type="url" id="connect-url" placeholder="https://script.google.com/macros/s/...">
+    </div>
+    <button class="btn btn-primary" id="connect-btn" onclick="connectWorkspace()">Connect & Load Employees</button>
+    <button class="btn btn-ghost mt8" style="margin-top:8px" onclick="closeModal('m-connect')">Cancel</button>
+  </div>
+</div>
+
+<!-- Task Entry (Clock In) -->
+<div class="modal-overlay" id="m-taskin">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2 style="margin-bottom:6px">What's on your plate today?</h2>
+    <p class="text-muted small" style="margin-bottom:20px">Your team can see these tasks.</p>
+    <div id="task-inputs"></div>
+    <button class="btn btn-secondary" style="margin-bottom:16px" onclick="addTaskInput()">+ Add task</button>
     <button class="btn btn-primary" onclick="confirmClockIn()">Clock In & Start Day →</button>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     MODAL: Task Review (Clock Out)
-════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal-tasks-out">
+<!-- Task Review (Clock Out) -->
+<div class="modal-overlay" id="m-taskout">
   <div class="modal">
-    <div class="modal-handle"></div>
+    <div class="mhandle"></div>
     <h2 style="margin-bottom:6px">How'd the day go?</h2>
-    <p class="text-muted small" style="margin-bottom:20px">Tap tasks to mark them complete or partial.</p>
-    <div id="task-review-list"></div>
-    <div class="input-group" style="margin-top:16px">
-      <label>Any notes for today?</label>
-      <textarea id="clockout-notes" placeholder="Optional — anything to share with the team…"></textarea>
+    <p class="text-muted small" style="margin-bottom:20px">Tap each task to mark Done / Partial.</p>
+    <div id="task-review"></div>
+    <div class="ig" style="margin-top:16px">
+      <label>Any notes?</label>
+      <textarea id="out-notes" placeholder="Optional — anything to share with the team…"></textarea>
     </div>
     <button class="btn btn-danger" onclick="confirmClockOut()">Clock Out & End Day</button>
   </div>
 </div>
 
-<script>
-// ═══════════════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════════════
-let config = null;
-let employees = [];
-let currentUser = null;
-let clockInterval = null;
-let locationInterval = null;
-let userLocation = null;
-let isAtWork = false;
-let setupStep = 1;
-const TOTAL_STEPS = 4;
-
-const AVATAR_COLORS = [
-  '#e8ff47','#47d4ff','#ff8a47','#ff47d4','#47ffa0','#d447ff',
-  '#ffd447','#4747ff','#ff4747','#47ffed','#ff9f47','#9f47ff'
-];
-
-function getAvatarColor(idx) { return AVATAR_COLORS[idx % AVATAR_COLORS.length]; }
-function getInitials(name) { return name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2); }
-
-// ═══════════════════════════════════════════════════════════════
-// STORAGE
-// ═══════════════════════════════════════════════════════════════
-function saveState() {
-  // Only persist employee clock records locally — config is hardcoded
-  localStorage.setItem('wt_employees', JSON.stringify(employees));
-}
-// ═══════════════════════════════════════════════════════════════
-// HARDCODED CONFIG — never shows setup screen
-// ═══════════════════════════════════════════════════════════════
-const HARDCODED_CONFIG = {
-  company : "VOER-Staff 2026",
-  webhook : "https://script.google.com/macros/s/AKfycbxZYbxzK6_agk8D12sJxtz2QPBv-cYhtRxiMagZ1dbZTkaxPu6IZywzf-o2I-e8-VFA/exec",
-  lat     : 34.12137510638946,
-  lng     : -118.2246968308343,
-  radius  : 2000
-};
-
-function loadState() {
-  try {
-    // Always use hardcoded config — ignore any stale localStorage config
-    config = { ...HARDCODED_CONFIG };
-    // Keep employee clock records from localStorage (shift history stays on device)
-    employees = JSON.parse(localStorage.getItem('wt_employees')) || [];
-  } catch(e) { config = { ...HARDCODED_CONFIG }; employees = []; }
-}
-function getEmployee(id) { return employees.find(e=>e.id===id); }
-function updateEmployee(emp) {
-  const idx = employees.findIndex(e=>e.id===emp.id);
-  if(idx>=0) employees[idx]=emp;
-  saveState();
-}
-function todayKey() { return new Date().toISOString().split('T')[0]; }
-
-// ═══════════════════════════════════════════════════════════════
-// INIT — always goes straight to login
-// ═══════════════════════════════════════════════════════════════
-window.onload = function() {
-  loadState();
-  startClock();
-  showLoginScreen(); // always skip setup, go straight to login
-};
-
-function showScreen(name) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-'+name).classList.add('active');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// SETUP
-// ═══════════════════════════════════════════════════════════════
-function initStepDots() {
-  const c = document.getElementById('step-dots');
-  c.innerHTML = '';
-  for(let i=1;i<=TOTAL_STEPS;i++) {
-    const d = document.createElement('div');
-    d.className = 'step-dot' + (i<=setupStep?' done':'');
-    c.appendChild(d);
-  }
-}
-
-function showSetupStep(n) {
-  document.querySelectorAll('.setup-step').forEach(s=>s.classList.remove('active'));
-  document.getElementById('step-'+n).classList.add('active');
-  setupStep = n;
-  initStepDots();
-}
-
-function setupNext(from, skip=false) {
-  if(from===1) {
-    const name = document.getElementById('setup-company').value.trim();
-    if(!name) { toast('Enter a company name'); return; }
-    config = { company: name };
-    showSetupStep(2);
-  } else if(from===2) {
-    const lat = parseFloat(document.getElementById('setup-lat').value);
-    const lng = parseFloat(document.getElementById('setup-lng').value);
-    const radius = parseInt(document.getElementById('setup-radius').value) || 200;
-    if(isNaN(lat)||isNaN(lng)) { toast('Enter valid coordinates'); return; }
-    config.lat = lat; config.lng = lng; config.radius = radius;
-    saveState();
-    showSetupStep(3);
-  } else if(from===3) {
-    if(!skip) {
-      const url = document.getElementById('setup-webhook').value.trim();
-      if(!url) { toast('Paste your Apps Script URL'); return; }
-      config.webhook = url;
-    } else { config.webhook = null; }
-    saveState();
-    renderEmployeeSetupList();
-    showSetupStep(4);
-  }
-}
-
-function useMyLocation() {
-  navigator.geolocation.getCurrentPosition(pos=>{
-    document.getElementById('setup-lat').value = pos.coords.latitude.toFixed(6);
-    document.getElementById('setup-lng').value = pos.coords.longitude.toFixed(6);
-    toast('📍 Location captured!');
-  }, ()=>toast('Could not get location'));
-}
-
-function renderEmployeeSetupList() {
-  const el = document.getElementById('employee-list-setup');
-  el.innerHTML = employees.map((e,i)=>`
-    <div class="card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:8px">
-      <div class="avatar" style="background:${getAvatarColor(i)};color:#0a0a0a">${getInitials(e.name)}</div>
-      <div style="flex:1"><div style="font-weight:600">${e.name}</div><div class="text-muted small">PIN: ****</div></div>
-      <button onclick="removeEmployee('${e.id}')" style="background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer">×</button>
+<!-- Add/Edit Employee -->
+<div class="modal-overlay" id="m-emp">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2 id="emp-modal-title" style="margin-bottom:20px">Add Employee</h2>
+    <input type="hidden" id="emp-edit-id">
+    <div class="ig">
+      <label>Full Name</label>
+      <input type="text" id="emp-edit-name" placeholder="Jane Smith" maxlength="30">
     </div>
-  `).join('');
-  document.getElementById('finish-setup-btn').disabled = employees.length === 0;
+    <div class="ig">
+      <label>4-Digit PIN</label>
+      <input type="number" id="emp-edit-pin" placeholder="1234" maxlength="4" max="9999" inputmode="numeric">
+    </div>
+    <button class="btn btn-primary" onclick="saveEmp()">Save Employee</button>
+    <button class="btn btn-ghost mt8" style="margin-top:8px" onclick="closeModal('m-emp')">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// CONFIG — edit here to change location/settings
+// ════════════════════════════════════════════════
+const CFG = {
+  company  : 'VOER-Staff 2026',
+  webhook  : 'https://script.google.com/macros/s/AKfycbxZYbxzK6_agk8D12sJxtz2QPBv-cYhtRxiMagZ1dbZTkaxPu6IZywzf-o2I-e8-VFA/exec',
+  lat      : 34.12137510638946,
+  lng      : -118.2246968308343,
+  radius   : 2000,
+  adminPin : '0000'
+};
+
+// ════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════
+let config     = { ...CFG };
+let employees  = [];
+let currentUser = null;
+let userLat    = null;
+let userLng    = null;
+let isAtWork   = false;
+let locWatcher = null;
+
+const COLORS = ['#e8ff47','#47d4ff','#ff8a47','#ff47d4','#47ffa0','#d447ff','#ffd447','#4747ff','#ff4747','#47ffed'];
+const initials = n => n.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+const avatarColor = i => COLORS[i % COLORS.length];
+const todayKey = () => new Date().toISOString().split('T')[0];
+
+// ════════════════════════════════════════════════
+// STORAGE
+// ════════════════════════════════════════════════
+function save() {
+  localStorage.setItem('wt_employees', JSON.stringify(employees));
+  localStorage.setItem('wt_config_override', JSON.stringify({
+    adminPin: config.adminPin,
+    lat: config.lat,
+    lng: config.lng,
+    radius: config.radius,
+    company: config.company,
+    webhook: config.webhook
+  }));
 }
 
-function addEmployee() {
-  if(employees.length >= 20) { toast('Max 20 employees'); return; }
-  const name = document.getElementById('new-emp-name').value.trim();
-  const pin = document.getElementById('new-emp-pin').value.trim();
-  if(!name) { toast('Enter a name'); return; }
-  if(!/^\d{4}$/.test(pin)) { toast('PIN must be 4 digits'); return; }
-  if(employees.find(e=>e.pin===pin)) { toast('PIN already taken'); return; }
-  employees.push({ id: 'emp_'+Date.now(), name, pin, records: [], joinedDate: todayKey() });
-  document.getElementById('new-emp-name').value = '';
-  document.getElementById('new-emp-pin').value = '';
-  saveState();
-  renderEmployeeSetupList();
-  toast(`✓ ${name} added`);
+function load() {
+  try {
+    employees = JSON.parse(localStorage.getItem('wt_employees')) || [];
+    const ov = JSON.parse(localStorage.getItem('wt_config_override'));
+    if (ov) config = { ...CFG, ...ov };
+  } catch(e) { employees = []; }
 }
 
-function removeEmployee(id) {
-  employees = employees.filter(e=>e.id!==id);
-  saveState();
-  renderEmployeeSetupList();
+function getEmp(id) { return employees.find(e => e.id === id); }
+function updateEmp(emp) {
+  const i = employees.findIndex(e => e.id === emp.id);
+  if (i >= 0) employees[i] = emp;
+  save();
 }
 
-function finishSetup() {
-  if(employees.length===0) { toast('Add at least one employee'); return; }
-  saveState();
-  showLoginScreen();
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+window.onload = function() {
+  load();
+  startClock();
+  showLogin();
+};
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // LOGIN
-// ═══════════════════════════════════════════════════════════════
-async function showLoginScreen() {
-  document.getElementById('login-company-name').textContent = config?.company || 'WorkTrack';
-  const sel = document.getElementById('login-employee');
-  sel.innerHTML = '<option value="">⏳ Loading employees…</option>';
+// ════════════════════════════════════════════════
+async function showLogin() {
+  document.getElementById('login-title').textContent = config.company;
+  const sel = document.getElementById('login-emp');
+  sel.innerHTML = '<option value="">⏳ Loading…</option>';
   sel.disabled = true;
   showScreen('login');
 
-  // If we have a webhook, always fetch fresh employee list from Sheets
-  if (config?.webhook) {
+  // Fetch from Sheets
+  if (config.webhook) {
     try {
-      const url = config.webhook + '?action=getEmployees';
-      const res = await fetch(url);
+      const res  = await fetch(config.webhook + '?action=getEmployees');
       const data = await res.json();
-
-      // Merge fetched employees with local records (preserve clock history)
       if (data.employees && data.employees.length > 0) {
-        // Update config from sheet if present
-        if (data.config?.company) config.company = data.config.company;
-        if (data.config?.lat) config.lat = parseFloat(data.config.lat);
-        if (data.config?.lng) config.lng = parseFloat(data.config.lng);
-        if (data.config?.radius) config.radius = parseInt(data.config.radius);
-
-        // Merge: keep local records, update name list from sheet
-        data.employees.forEach(fetched => {
-          const existing = employees.find(e => e.id === fetched.id);
-          if (!existing) {
-            employees.push({ id: fetched.id, name: fetched.name, records: [] });
-          } else {
-            existing.name = fetched.name; // keep name in sync
-          }
+        data.employees.forEach(f => {
+          if (!employees.find(e => e.id === f.id))
+            employees.push({ id: f.id, name: f.name, records: [], joinedDate: todayKey() });
+          else
+            employees.find(e => e.id === f.id).name = f.name;
         });
-        saveState();
+        save();
       }
-    } catch(err) {
-      console.warn('Could not fetch employees from Sheets, using local cache.', err);
-    }
+    } catch(e) { /* use local cache */ }
   }
 
-  // Populate dropdown
   sel.innerHTML = '<option value="">— Choose your name —</option>';
-  if (employees.length === 0) {
-    sel.innerHTML = '<option value="">No employees found — contact admin</option>';
+  if (!employees.length) {
+    sel.innerHTML = '<option value="">No employees — contact admin</option>';
     sel.disabled = true;
     return;
   }
@@ -916,659 +557,490 @@ async function showLoginScreen() {
     sel.appendChild(o);
   });
   sel.disabled = false;
-  document.getElementById('login-company-name').textContent = config?.company || 'WorkTrack';
 }
 
 async function doLogin() {
-  const id = document.getElementById('login-employee').value;
+  const id  = document.getElementById('login-emp').value;
   const pin = document.getElementById('login-pin').value;
-  if (!id) { toast('Select your name'); return; }
+  if (!id)  { toast('Select your name'); return; }
   if (!pin) { toast('Enter your PIN'); return; }
 
-  const btn = document.querySelector('#screen-login .btn-primary');
+  const btn = document.getElementById('login-btn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Signing in…';
+  btn.innerHTML = '<span class="spin"></span> Signing in…';
 
-  let verified = false;
-
-  // Try verifying PIN against Sheets first (most secure)
-  if (config?.webhook) {
+  let ok = false;
+  if (config.webhook) {
     try {
-      const url = `${config.webhook}?action=verifyPin&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}`;
-      const res = await fetch(url);
+      const res  = await fetch(`${config.webhook}?action=verifyPin&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}`);
       const data = await res.json();
-      verified = data.valid === true;
-    } catch(err) {
-      // Fallback to local PIN check if offline
-      const emp = getEmployee(id);
-      verified = emp && emp.pin === pin;
+      ok = data.valid === true;
+    } catch(e) {
+      const emp = getEmp(id);
+      ok = emp && emp.pin === pin;
     }
   } else {
-    // No webhook — use local PIN only
-    const emp = getEmployee(id);
-    verified = emp && emp.pin === pin;
+    const emp = getEmp(id);
+    ok = emp && emp.pin === pin;
   }
 
   btn.disabled = false;
   btn.textContent = 'Sign In';
 
-  if (!verified) { toast('❌ Incorrect PIN'); document.getElementById('login-pin').value = ''; return; }
+  if (!ok) { toast('❌ Incorrect PIN'); document.getElementById('login-pin').value = ''; return; }
 
-  currentUser = getEmployee(id);
+  currentUser = getEmp(id);
   if (!currentUser) {
-    // Employee exists in Sheets but not locally yet — create local shell
-    const sel = document.getElementById('login-employee');
-    const name = sel.options[sel.selectedIndex].text;
+    const name = document.getElementById('login-emp').selectedOptions[0].text;
     currentUser = { id, name, records: [], joinedDate: todayKey() };
     employees.push(currentUser);
-    saveState();
+    save();
   }
   document.getElementById('login-pin').value = '';
   enterApp();
 }
 
-function showConnectSheet() {
-  document.getElementById('modal-connect').classList.add('open');
-}
-
-async function connectWorkspace() {
-  const url = document.getElementById('connect-url').value.trim();
-  if (!url) { toast('Paste the workspace URL'); return; }
-  const btn = document.querySelector('#modal-connect .btn-primary');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Connecting…';
-  try {
-    const res = await fetch(url + '?action=getEmployees');
-    const data = await res.json();
-    if (!data.employees || data.employees.length === 0) {
-      toast('⚠️ No employees found. Check the URL.'); btn.disabled=false; btn.textContent='Connect & Load Employees'; return;
-    }
-    // Save config from sheet
-    config = config || {};
-    config.webhook = url;
-    if (data.config?.company) config.company = data.config.company;
-    if (data.config?.lat) config.lat = parseFloat(data.config.lat);
-    if (data.config?.lng) config.lng = parseFloat(data.config.lng);
-    if (data.config?.radius) config.radius = parseInt(data.config.radius);
-    // Merge employees
-    data.employees.forEach(fetched => {
-      if (!employees.find(e => e.id === fetched.id)) {
-        employees.push({ id: fetched.id, name: fetched.name, records: [] });
-      }
-    });
-    saveState();
-    document.getElementById('modal-connect').classList.remove('open');
-    toast('✓ Connected! Select your name below.');
-    showLoginScreen();
-  } catch(err) {
-    toast('❌ Could not connect. Check the URL and try again.');
-  }
-  btn.disabled = false;
-  btn.textContent = 'Connect & Load Employees';
-}
-
-function showAdminReset() {
-  openAdminLogin();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MAIN APP
-// ═══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
+// APP
+// ════════════════════════════════════════════════
 function enterApp() {
   const h = new Date().getHours();
-  const greeting = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
-  document.getElementById('home-greeting').textContent = `${greeting}, ${currentUser.name.split(' ')[0]}`;
-  document.getElementById('home-company').textContent = config.company;
-  updateHomeStatus();
-  switchTab('home');
+  const gr = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('home-greeting').textContent = gr + ', ' + currentUser.name.split(' ')[0];
+  document.getElementById('home-co').textContent = config.company;
+  goTab('home');
   showScreen('home');
-  startLocationWatch();
-  renderTodayTasks();
+  startLocation();
+  renderHomeTasks();
+  updateHomeStatus();
 }
 
 function updateHomeStatus() {
   const today = todayKey();
-  const rec = currentUser.records?.find(r=>r.date===today);
-  const badge = document.getElementById('home-status-badge');
-  const btn = document.getElementById('clock-btn');
-  if(rec?.clockIn && !rec?.clockOut) {
-    badge.innerHTML = '<span class="badge badge-in"><span class="badge-dot"></span>Clocked In</span>';
+  const rec   = currentUser.records?.find(r => r.date === today);
+  const badge = document.getElementById('home-badge');
+  const btn   = document.getElementById('clock-btn');
+
+  if (rec?.clockIn && !rec?.clockOut) {
+    badge.innerHTML = '<span class="badge badge-in"><span class="bdot"></span>Clocked In</span>';
     btn.textContent = 'Clock Out';
-    btn.className = 'btn btn-danger';
-    document.getElementById('hours-today-card').style.display = 'block';
-    updateHoursToday(rec);
-  } else if(rec?.clockOut) {
+    btn.className   = 'btn btn-danger';
+    document.getElementById('hours-card').style.display = 'block';
+    updateHours(rec);
+  } else if (rec?.clockOut) {
     badge.innerHTML = '<span class="badge badge-out">Day Complete</span>';
     btn.textContent = 'Day Ended';
-    btn.className = 'btn btn-secondary';
-    btn.disabled = true;
-    document.getElementById('hours-today-card').style.display = 'block';
-    updateHoursToday(rec);
+    btn.className   = 'btn btn-secondary';
+    btn.disabled    = true;
+    document.getElementById('hours-card').style.display = 'block';
+    updateHours(rec);
   } else {
     badge.innerHTML = '<span class="badge badge-out">Not Clocked In</span>';
     btn.textContent = 'Clock In';
-    btn.className = 'btn btn-primary';
-    document.getElementById('hours-today-card').style.display = 'none';
+    btn.className   = 'btn btn-primary';
+    btn.disabled    = !isAtWork;
+    document.getElementById('hours-card').style.display = 'none';
   }
+  if (rec?.clockIn && !rec?.clockOut) btn.disabled = !isAtWork;
 }
 
-function updateHoursToday(rec) {
-  if(!rec?.clockIn) return;
+function updateHours(rec) {
   const start = new Date(rec.clockIn);
-  const end = rec.clockOut ? new Date(rec.clockOut) : new Date();
-  const mins = Math.floor((end-start)/60000);
-  const h = Math.floor(mins/60), m = mins%60;
-  document.getElementById('hours-today-val').textContent = `${h}h ${m}m`;
+  const end   = rec.clockOut ? new Date(rec.clockOut) : new Date();
+  const mins  = Math.floor((end - start) / 60000);
+  document.getElementById('hours-val').textContent = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
 }
 
-function renderTodayTasks() {
+function renderHomeTasks() {
   const today = todayKey();
-  const rec = currentUser.records?.find(r=>r.date===today);
-  const card = document.getElementById('todays-tasks-card');
-  if(!rec?.tasks?.length) { card.style.display = 'none'; return; }
+  const rec   = currentUser.records?.find(r => r.date === today);
+  const card  = document.getElementById('tasks-card');
+  if (!rec?.tasks?.length) { card.style.display = 'none'; return; }
   card.style.display = 'block';
-  document.getElementById('task-count-badge').textContent = `${rec.tasks.length} task${rec.tasks.length>1?'s':''}`;
-  document.getElementById('todays-tasks-list').innerHTML = rec.tasks.map(t=>`
+  document.getElementById('tasks-badge').textContent = rec.tasks.length + ' task' + (rec.tasks.length > 1 ? 's' : '');
+  document.getElementById('tasks-list').innerHTML = rec.tasks.map(t => `
     <div class="task-item">
-      <div class="task-text ${t.status==='done'?'done-text':''}">${t.text}</div>
-      <span style="font-size:11px;padding:2px 8px;border-radius:4px;flex-shrink:0;${
-        t.status==='done'?'background:rgba(71,255,138,.15);color:var(--success)':
-        t.status==='partial'?'background:rgba(232,255,71,.15);color:var(--accent)':
-        'background:var(--surface2);color:var(--muted)'
-      }">${t.status==='done'?'Done':t.status==='partial'?'Partial':'Pending'}</span>
-    </div>
-  `).join('');
+      <div style="flex:1;font-size:14px;${t.status==='done'?'text-decoration:line-through;color:var(--muted)':''}">${t.text}</div>
+      <span class="tag" style="${t.status==='done'?'border-color:rgba(71,255,138,.3);color:var(--success)':t.status==='partial'?'border-color:rgba(232,255,71,.3);color:var(--accent)':'color:var(--muted)'}">${t.status==='done'?'Done':t.status==='partial'?'Partial':'Pending'}</span>
+    </div>`).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // LOCATION
-// ═══════════════════════════════════════════════════════════════
-function startLocationWatch() {
+// ════════════════════════════════════════════════
+function startLocation() {
   checkLocation();
-  locationInterval = setInterval(checkLocation, 30000);
 }
 
 function checkLocation() {
-  const bar = document.getElementById('loc-status-bar');
-  bar.className = 'loc-status loc-checking';
-  bar.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px"></span><span>Checking location…</span>';
-  if(!navigator.geolocation) {
-    setLocStatus(false, 'Location not supported');
+  const bar = document.getElementById('loc-bar');
+  bar.className = 'loc loc-chk';
+  bar.innerHTML = '<span class="spin" style="width:14px;height:14px;border-width:2px"></span><span>Checking location…</span>';
+
+  if (!navigator.geolocation) {
+    setLoc(false, 'Geolocation not supported on this device');
     return;
   }
   navigator.geolocation.getCurrentPosition(
     pos => {
-      userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      const dist = getDistance(userLocation.lat, userLocation.lng, config.lat, config.lng);
-      isAtWork = dist <= config.radius;
-      if(isAtWork) {
-        setLocStatus(true, `At workplace — ${Math.round(dist)}m away`);
-      } else {
-        setLocStatus(false, `Too far from workplace (${Math.round(dist)}m)`);
-      }
-      updateClockButton();
+      userLat  = pos.coords.latitude;
+      userLng  = pos.coords.longitude;
+      const d  = dist(userLat, userLng, config.lat, config.lng);
+      isAtWork = d <= config.radius;
+      setLoc(isAtWork, isAtWork
+        ? `✓ At workplace — ${Math.round(d)}m away`
+        : `${Math.round(d)}m from workplace (limit: ${config.radius}m)`);
+      updateHomeStatus();
     },
-    () => setLocStatus(false, 'Location permission denied'),
-    { enableHighAccuracy: true, timeout: 10000 }
+    err => {
+      let msg = 'Location error — enable location in Settings';
+      if (err.code === 1) msg = 'Location denied — enable in Settings → Safari → Location';
+      setLoc(false, msg);
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
   );
 }
 
-function setLocStatus(ok, msg) {
-  const bar = document.getElementById('loc-status-bar');
-  bar.className = 'loc-status ' + (ok ? 'loc-ok' : 'loc-err');
-  bar.innerHTML = `<span>${ok?'✓':'✗'}</span><span>${msg}</span>`;
+function setLoc(ok, msg) {
+  const bar = document.getElementById('loc-bar');
+  bar.className = 'loc ' + (ok ? 'loc-ok' : 'loc-err');
+  bar.innerHTML = `<span>${ok ? '✓' : '✗'}</span><span>${msg}</span>`;
 }
 
-function updateClockButton() {
-  const today = todayKey();
-  const rec = currentUser?.records?.find(r=>r.date===today);
-  const btn = document.getElementById('clock-btn');
-  if(rec?.clockOut) return;
-  btn.disabled = !isAtWork;
-  if(!isAtWork && btn.textContent !== 'Day Ended') {
-    btn.title = 'Must be at workplace to clock in/out';
-  }
-}
-
-function getDistance(lat1, lon1, lat2, lon2) {
+function dist(lat1, lon1, lat2, lon2) {
   const R = 6371000;
-  const dLat = (lat2-lat1)*Math.PI/180;
-  const dLon = (lon2-lon1)*Math.PI/180;
-  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // CLOCK IN / OUT
-// ═══════════════════════════════════════════════════════════════
-function handleClockAction() {
-  if(!isAtWork) { toast('Not at workplace'); return; }
+// ════════════════════════════════════════════════
+function handleClock() {
+  if (!isAtWork) { toast('Not at workplace'); return; }
   const today = todayKey();
-  const rec = currentUser.records?.find(r=>r.date===today);
-  if(!rec || !rec.clockIn) {
-    // Show task entry modal
-    document.getElementById('task-inputs-container').innerHTML = `
-      <div class="input-group">
-        <label>Task 1</label>
-        <input type="text" class="task-input" placeholder="e.g. Pour foundation — Unit 4" maxlength="80">
-      </div>`;
-    document.getElementById('modal-tasks-in').classList.add('open');
+  const rec   = currentUser.records?.find(r => r.date === today);
+  if (!rec?.clockIn) {
+    // Show task entry
+    document.getElementById('task-inputs').innerHTML = `
+      <div class="ig"><label>Task 1</label>
+      <input type="text" class="tinput" placeholder="e.g. Pour foundation Unit 4" maxlength="80"></div>`;
+    openModal('m-taskin');
   } else {
     showClockOutModal();
   }
 }
 
 function addTaskInput() {
-  const container = document.getElementById('task-inputs-container');
-  const count = container.querySelectorAll('.task-input').length + 1;
-  if(count > 10) { toast('Max 10 tasks'); return; }
-  const div = document.createElement('div');
-  div.className = 'input-group';
-  div.innerHTML = `<label>Task ${count}</label><input type="text" class="task-input" placeholder="Task description…" maxlength="80">`;
-  container.appendChild(div);
+  const c = document.getElementById('task-inputs').querySelectorAll('.tinput').length + 1;
+  if (c > 10) { toast('Max 10 tasks'); return; }
+  const d = document.createElement('div');
+  d.className = 'ig';
+  d.innerHTML = `<label>Task ${c}</label><input type="text" class="tinput" placeholder="Task description…" maxlength="80">`;
+  document.getElementById('task-inputs').appendChild(d);
 }
 
 function confirmClockIn() {
-  const inputs = document.querySelectorAll('.task-input');
-  const tasks = Array.from(inputs).map(i=>i.value.trim()).filter(Boolean);
-  if(!tasks.length) { toast('Add at least one task'); return; }
-  document.getElementById('modal-tasks-in').classList.remove('open');
+  const tasks = Array.from(document.querySelectorAll('.tinput')).map(i => i.value.trim()).filter(Boolean);
+  if (!tasks.length) { toast('Add at least one task'); return; }
+  closeModal('m-taskin');
   const today = todayKey();
-  const now = new Date().toISOString();
-  if(!currentUser.records) currentUser.records = [];
-  const rec = { date: today, clockIn: now, clockOut: null, tasks: tasks.map(t=>({text:t,status:'pending'})), notes: '' };
+  const now   = new Date().toISOString();
+  if (!currentUser.records) currentUser.records = [];
+  const rec = { date: today, clockIn: now, clockOut: null, tasks: tasks.map(t => ({ text: t, status: 'pending' })), notes: '' };
   currentUser.records.push(rec);
-  updateEmployee(currentUser);
-  sendToSheet({ type:'clockIn', ...buildSheetRow(rec) });
+  updateEmp(currentUser);
+  postSheet({ type: 'clockIn', ...buildRow(rec) });
   updateHomeStatus();
-  renderTodayTasks();
+  renderHomeTasks();
   toast('✓ Clocked in!');
 }
 
 function showClockOutModal() {
   const today = todayKey();
-  const rec = currentUser.records?.find(r=>r.date===today);
-  if(!rec) return;
-  const list = document.getElementById('task-review-list');
-  list.innerHTML = rec.tasks.map((t,i)=>`
-    <div class="task-item" id="review-task-${i}">
-      <div class="task-check" id="tc-${i}" onclick="cycleTask(${i})" style="flex-shrink:0"></div>
-      <div class="task-text">${t.text}</div>
-    </div>
-  `).join('');
-  document.getElementById('clockout-notes').value = '';
-  document.getElementById('modal-tasks-out').classList.add('open');
+  const rec   = currentUser.records?.find(r => r.date === today);
+  if (!rec) return;
+  document.getElementById('task-review').innerHTML = rec.tasks.map((t, i) => `
+    <div class="task-item">
+      <div class="tcheck" id="tc${i}" onclick="cycleTask(${i})"></div>
+      <div style="flex:1;font-size:14px">${t.text}</div>
+    </div>`).join('');
+  document.getElementById('out-notes').value = '';
+  openModal('m-taskout');
 }
 
 function cycleTask(i) {
   const today = todayKey();
-  const rec = currentUser.records?.find(r=>r.date===today);
-  if(!rec) return;
-  const statuses = ['pending','done','partial'];
-  const cur = rec.tasks[i].status;
-  rec.tasks[i].status = statuses[(statuses.indexOf(cur)+1)%3];
-  const check = document.getElementById('tc-'+i);
-  const s = rec.tasks[i].status;
-  check.className = 'task-check' + (s==='done'?' done':s==='partial'?' partial':'');
-  check.innerHTML = s==='done'?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':s==='partial'?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/></svg>':'';
+  const rec   = currentUser.records?.find(r => r.date === today);
+  if (!rec) return;
+  const s = ['pending','done','partial'];
+  rec.tasks[i].status = s[(s.indexOf(rec.tasks[i].status) + 1) % 3];
+  const el = document.getElementById('tc' + i);
+  const st = rec.tasks[i].status;
+  el.className = 'tcheck' + (st === 'done' ? ' done' : st === 'partial' ? ' partial' : '');
+  el.innerHTML = st === 'done'
+    ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>'
+    : st === 'partial'
+    ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+    : '';
 }
 
 function confirmClockOut() {
   const today = todayKey();
-  const recIdx = currentUser.records?.findIndex(r=>r.date===today);
-  if(recIdx===-1) return;
-  const rec = currentUser.records[recIdx];
-  rec.clockOut = new Date().toISOString();
-  rec.notes = document.getElementById('clockout-notes').value.trim();
-  currentUser.records[recIdx] = rec;
-  updateEmployee(currentUser);
-  document.getElementById('modal-tasks-out').classList.remove('open');
-  sendToSheet({ type:'clockOut', ...buildSheetRow(rec) });
+  const idx   = currentUser.records?.findIndex(r => r.date === today);
+  if (idx === -1 || idx === undefined) return;
+  currentUser.records[idx].clockOut = new Date().toISOString();
+  currentUser.records[idx].notes    = document.getElementById('out-notes').value.trim();
+  updateEmp(currentUser);
+  closeModal('m-taskout');
+  postSheet({ type: 'clockOut', ...buildRow(currentUser.records[idx]) });
   updateHomeStatus();
-  renderTodayTasks();
+  renderHomeTasks();
   toast('✓ Clocked out. Great work!');
 }
 
-function buildSheetRow(rec) {
+function buildRow(rec) {
   return {
-    employeeId: currentUser.id,
-    employeeName: currentUser.name,
-    date: rec.date,
-    clockIn: rec.clockIn,
-    clockOut: rec.clockOut || '',
-    tasks: rec.tasks.map(t=>`${t.text} [${t.status}]`).join(' | '),
-    tasksDone: rec.tasks.filter(t=>t.status==='done').length,
-    tasksPartial: rec.tasks.filter(t=>t.status==='partial').length,
-    tasksTotal: rec.tasks.length,
-    notes: rec.notes || '',
-    locationLat: userLocation?.lat || '',
-    locationLng: userLocation?.lng || ''
+    employeeId   : currentUser.id,
+    employeeName : currentUser.name,
+    date         : rec.date,
+    clockIn      : rec.clockIn,
+    clockOut     : rec.clockOut || '',
+    tasks        : (rec.tasks || []).map(t => `${t.text} [${t.status}]`).join(' | '),
+    tasksDone    : (rec.tasks || []).filter(t => t.status === 'done').length,
+    tasksPartial : (rec.tasks || []).filter(t => t.status === 'partial').length,
+    tasksTotal   : (rec.tasks || []).length,
+    notes        : rec.notes || '',
+    locationLat  : userLat || '',
+    locationLng  : userLng || ''
   };
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // GOOGLE SHEETS
-// ═══════════════════════════════════════════════════════════════
-async function sendToSheet(data) {
-  if(!config?.webhook) return;
+// ════════════════════════════════════════════════
+async function postSheet(data) {
+  if (!config.webhook) return;
   try {
     await fetch(config.webhook, {
-      method: 'POST',
-      mode: 'no-cors',
+      method: 'POST', mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
   } catch(e) { console.warn('Sheet sync failed:', e); }
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // TEAM FEED
-// ═══════════════════════════════════════════════════════════════
-function renderTeamFeed() {
+// ════════════════════════════════════════════════
+function renderTeam() {
   const today = todayKey();
-  document.getElementById('team-date-label').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  document.getElementById('team-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
   const feed = document.getElementById('team-feed');
-  const items = employees.map((emp,i) => {
-    const rec = emp.records?.find(r=>r.date===today);
-    return { emp, rec, i };
-  }).sort((a,b) => {
-    if(a.rec?.clockIn && !b.rec?.clockIn) return -1;
-    if(!a.rec?.clockIn && b.rec?.clockIn) return 1;
-    return a.emp.name.localeCompare(b.emp.name);
+  if (!employees.length) { feed.innerHTML = '<p class="text-muted small">No team members yet.</p>'; return; }
+
+  const sorted = [...employees].sort((a, b) => {
+    const ar = a.records?.find(r => r.date === today);
+    const br = b.records?.find(r => r.date === today);
+    const as = ar?.clockIn ? (ar.clockOut ? 1 : 2) : 0;
+    const bs = br?.clockIn ? (br.clockOut ? 1 : 2) : 0;
+    return bs - as;
   });
 
-  if(!items.length) { feed.innerHTML = '<p class="text-muted small">No team members yet.</p>'; return; }
-
-  feed.innerHTML = items.map(({emp, rec, i}) => {
-    const clocked = rec?.clockIn;
-    const out = rec?.clockOut;
+  feed.innerHTML = sorted.map((emp, i) => {
+    const rec  = emp.records?.find(r => r.date === today);
+    const idx  = employees.findIndex(e => e.id === emp.id);
+    const isIn = rec?.clockIn && !rec?.clockOut;
+    const done = rec?.clockOut;
     const tasks = rec?.tasks || [];
-    const statusStr = out ? 'Done for the day' : clocked ? 'Currently working' : 'Not started';
-    const statusColor = out ? 'var(--muted)' : clocked ? 'var(--success)' : 'var(--muted)';
-    const taskTags = tasks.map(t=>`<span class="feed-task-tag" style="${t.status==='done'?'border-color:rgba(71,255,138,.3);color:var(--success)':t.status==='partial'?'border-color:rgba(232,255,71,.3);color:var(--accent)':''}">${t.text}</span>`).join('');
-    const clockStr = clocked ? `In ${new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}${out?' · Out '+new Date(rec.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):''}` : '';
+    const timeStr = isIn
+      ? 'In ' + new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+      : done
+      ? 'In ' + new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' · Out ' + new Date(rec.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
+      : '';
+    const statusColor = isIn ? 'var(--success)' : done ? 'var(--accent2)' : 'var(--muted)';
+    const statusText  = isIn ? '● Working' : done ? '✓ Done' : '○ Not started';
     return `
       <div class="feed-item">
-        <div class="avatar" style="background:${getAvatarColor(i)};color:#0a0a0a">${getInitials(emp.name)}</div>
+        <div class="avatar" style="background:${avatarColor(idx)};color:#0a0a0a">${initials(emp.name)}</div>
         <div class="feed-content">
-          <div class="flex justify-between items-center gap-8">
-            <span class="feed-name">${emp.name}</span>
-            <span style="font-size:11px;color:${statusColor}">${clocked?'●':''} ${statusStr}</span>
+          <div class="flex jb ic">
+            <span style="font-family:var(--fd);font-weight:700;font-size:14px">${emp.name}</span>
+            <span style="font-size:11px;color:${statusColor}">${statusText}</span>
           </div>
-          <div class="feed-meta">${clockStr}</div>
-          ${tasks.length ? `<div class="feed-tasks">${taskTags}</div>` : '<div class="feed-tasks text-muted" style="font-size:12px">No tasks logged today</div>'}
+          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">${timeStr}</div>
+          ${tasks.length
+            ? tasks.map(t => `<span class="tag" style="${t.status==='done'?'border-color:rgba(71,255,138,.3);color:var(--success)':t.status==='partial'?'border-color:rgba(232,255,71,.3);color:var(--accent)':''}">${t.text}</span>`).join('')
+            : '<span style="font-size:12px;color:var(--muted)">No tasks logged</span>'}
           ${rec?.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">"${rec.notes}"</div>` : ''}
         </div>
       </div>`;
   }).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // PROFILE
-// ═══════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 function renderProfile() {
   const emp = currentUser;
-  const i = employees.findIndex(e=>e.id===emp.id);
-  const col = getAvatarColor(i);
-  document.getElementById('profile-avatar-lg').style.background = col;
-  document.getElementById('profile-avatar-lg').style.color = '#0a0a0a';
-  document.getElementById('profile-avatar-lg').textContent = getInitials(emp.name);
-  document.getElementById('profile-name-lg').textContent = emp.name;
-  document.getElementById('profile-joined').textContent = `Joined ${emp.joinedDate || 'recently'}`;
+  const idx = employees.findIndex(e => e.id === emp.id);
+  const av  = document.getElementById('prof-avatar');
+  av.style.background = avatarColor(idx);
+  av.style.color = '#0a0a0a';
+  av.textContent = initials(emp.name);
+  document.getElementById('prof-name').textContent   = emp.name;
+  document.getElementById('prof-joined').textContent = 'Joined ' + (emp.joinedDate || 'recently');
 
-  const records = emp.records || [];
-  const clockedDays = records.filter(r=>r.clockIn).length;
-  let totalMins = 0;
-  records.forEach(r=>{
-    if(r.clockIn && r.clockOut) {
-      totalMins += (new Date(r.clockOut)-new Date(r.clockIn))/60000;
-    }
+  const recs = emp.records || [];
+  let totalMins = 0, tasksDone = 0;
+  recs.forEach(r => {
+    if (r.clockIn && r.clockOut) totalMins += (new Date(r.clockOut) - new Date(r.clockIn)) / 60000;
+    tasksDone += (r.tasks || []).filter(t => t.status === 'done').length;
   });
-  const tasksDone = records.reduce((sum,r)=>(sum + (r.tasks||[]).filter(t=>t.status==='done').length),0);
 
-  document.getElementById('stat-days').textContent = clockedDays;
-  document.getElementById('stat-hours').textContent = (totalMins/60).toFixed(1);
-  document.getElementById('stat-tasks').textContent = tasksDone;
+  document.getElementById('s-days').textContent  = recs.filter(r => r.clockIn).length;
+  document.getElementById('s-hrs').textContent   = (totalMins / 60).toFixed(1);
+  document.getElementById('s-tasks').textContent = tasksDone;
 
-  // Recent history
-  const hist = [...records].reverse().slice(0,7);
-  document.getElementById('profile-history').innerHTML = hist.length ? hist.map(r=>{
-    const dur = r.clockIn && r.clockOut ? Math.floor((new Date(r.clockOut)-new Date(r.clockIn))/60000) : null;
-    const h = dur ? Math.floor(dur/60) : null;
-    const m = dur ? dur%60 : null;
-    return `
-      <div class="card" style="padding:14px 16px">
-        <div class="flex justify-between items-center">
-          <span style="font-family:var(--font-display);font-weight:700">${r.date}</span>
-          <span class="text-muted small">${dur ? `${h}h ${m}m` : 'In progress'}</span>
-        </div>
-        <div style="margin-top:8px">${(r.tasks||[]).map(t=>`<span class="feed-task-tag" style="margin-bottom:3px;${t.status==='done'?'border-color:rgba(71,255,138,.3);color:var(--success)':''}">${t.text}</span>`).join(' ')}</div>
-      </div>`;
-  }).join('') : '<p class="text-muted small">No history yet.</p>';
+  const hist = [...recs].reverse().slice(0, 7);
+  document.getElementById('prof-history').innerHTML = hist.length
+    ? hist.map(r => {
+        const mins = r.clockIn && r.clockOut ? Math.floor((new Date(r.clockOut) - new Date(r.clockIn)) / 60000) : null;
+        return `<div class="card" style="padding:14px 16px">
+          <div class="flex jb ic">
+            <span style="font-family:var(--fd);font-weight:700">${r.date}</span>
+            <span class="text-muted small">${mins ? Math.floor(mins/60)+'h '+(mins%60)+'m' : 'In progress'}</span>
+          </div>
+          <div style="margin-top:8px">${(r.tasks||[]).map(t=>`<span class="tag" style="${t.status==='done'?'border-color:rgba(71,255,138,.3);color:var(--success)':''}">${t.text}</span>`).join(' ')}</div>
+        </div>`;
+      }).join('')
+    : '<p class="text-muted small">No history yet.</p>';
 }
 
-// ═══════════════════════════════════════════════════════════════
-// TABS
-// ═══════════════════════════════════════════════════════════════
-function switchTab(tab) {
-  ['home','team','profile'].forEach(t=>{
-    [1,2,3].forEach(n=>{
-      const el = document.getElementById(`tab${n>1?n:''}${n>1?'-':''}${t}`);
-      if(el) el.classList.remove('active');
+// ════════════════════════════════════════════════
+// TAB NAVIGATION
+// ════════════════════════════════════════════════
+function goTab(tab) {
+  ['home','team','profile'].forEach(t => {
+    ['h','t','p'].forEach(p => {
+      const el = document.getElementById(p + 'n-' + t);
+      if (el) el.classList.toggle('active', t === tab);
     });
   });
-  const screens = { home:'screen-home', team:'screen-team', profile:'screen-profile' };
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(screens[tab]).classList.add('active');
-  // Set active on all matching tabs
-  document.querySelectorAll(`[id$="-${tab}"], [id="tab-${tab}"]`).forEach(el=>el.classList.add('active'));
-
-  if(tab==='team') renderTeamFeed();
-  if(tab==='profile') renderProfile();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CLOCK
-// ═══════════════════════════════════════════════════════════════
-function startClock() {
-  function update() {
-    const now = new Date();
-    document.getElementById('live-clock').textContent = now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('live-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-    // Update hours if clocked in
-    if(currentUser) {
-      const today = todayKey();
-      const rec = currentUser.records?.find(r=>r.date===today);
-      if(rec?.clockIn && !rec?.clockOut) updateHoursToday(rec);
-    }
-  }
-  update();
-  setInterval(update, 10000);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// LOGOUT
-// ═══════════════════════════════════════════════════════════════
-function doLogout() {
-  clearInterval(locationInterval);
-  currentUser = null;
-  isAtWork = false;
-  showLoginScreen();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// TOAST
-// ═══════════════════════════════════════════════════════════════
-let toastTimer = null;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>el.classList.remove('show'), 2800);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ADMIN DASHBOARD
-// ═══════════════════════════════════════════════════════════════
-const ADMIN_DEFAULT_PIN = '0000';
-let adminSettings = {}; // runtime-editable copy of config
-
-function openAdminLogin() {
-  document.getElementById('admin-pin-input').value = '';
-  document.getElementById('modal-admin-login').classList.add('open');
-  setTimeout(() => document.getElementById('admin-pin-input').focus(), 300);
-}
-
-function submitAdminLogin() {
-  const pin = document.getElementById('admin-pin-input').value.trim();
-  const correctPin = adminSettings.adminPin || ADMIN_DEFAULT_PIN;
-  if (pin !== correctPin) { toast('❌ Wrong admin PIN'); return; }
-  document.getElementById('modal-admin-login').classList.remove('open');
-  enterAdminDashboard();
-}
-
-function enterAdminDashboard() {
-  adminSettings = { ...config }; // copy current config into editable state
-  document.getElementById('admin-company-name').textContent = config.company;
-  switchAdminTab('overview');
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('screen-admin').classList.add('active');
-  renderAdminOverview();
+  document.getElementById('screen-' + tab).classList.add('active');
+  if (tab === 'team')    renderTeam();
+  if (tab === 'profile') renderProfile();
 }
 
-function exitAdmin() {
-  showLoginScreen();
+// ════════════════════════════════════════════════
+// ADMIN
+// ════════════════════════════════════════════════
+function openAdminLogin() {
+  document.getElementById('admin-pin').value = '';
+  openModal('m-admin');
+  setTimeout(() => document.getElementById('admin-pin').focus(), 350);
 }
 
-function adminSignOut() {
-  exitAdmin();
+function submitAdmin() {
+  const pin = document.getElementById('admin-pin').value.trim();
+  if (pin !== (config.adminPin || '0000')) { toast('❌ Wrong admin PIN'); return; }
+  closeModal('m-admin');
+  showScreen('admin');
+  aTab('overview');
 }
 
-// ── TAB SWITCHING ──────────────────────────────────────────────
-function switchAdminTab(tab) {
-  document.querySelectorAll('.admin-tab').forEach((t,i) => {
-    t.classList.toggle('active', ['overview','employees','today','settings'][i] === tab);
-  });
-  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-' + tab).classList.add('active');
-  if (tab === 'overview')   renderAdminOverview();
-  if (tab === 'employees')  renderAdminEmployees();
-  if (tab === 'today')      renderAdminToday();
-  if (tab === 'settings')   renderAdminSettings();
+function exitAdmin() { showLogin(); }
+
+function aTab(tab) {
+  const tabs = ['overview','employees','today','settings'];
+  document.querySelectorAll('.atab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.apanel').forEach(p => p.classList.remove('active'));
+  document.getElementById('ap-' + tab).classList.add('active');
+  if (tab === 'overview')  renderAdminOverview();
+  if (tab === 'employees') renderAdminEmps();
+  if (tab === 'today')     renderAdminToday();
+  if (tab === 'settings')  renderAdminSettings();
 }
 
-// ── OVERVIEW PANEL ────────────────────────────────────────────
 function renderAdminOverview() {
   const today = todayKey();
-  let clockedIn = 0, doneToday = 0, notStarted = 0;
-
+  let inn = 0, done = 0, out = 0;
   employees.forEach(emp => {
-    const rec = emp.records?.find(r => r.date === today);
-    if (rec?.clockOut) doneToday++;
-    else if (rec?.clockIn) clockedIn++;
-    else notStarted++;
+    const r = emp.records?.find(r => r.date === today);
+    if (r?.clockOut) done++;
+    else if (r?.clockIn) inn++;
+    else out++;
   });
+  document.getElementById('ov-in').textContent    = inn;
+  document.getElementById('ov-total').textContent = employees.length;
+  document.getElementById('ov-done').textContent  = done;
+  document.getElementById('ov-out').textContent   = out;
 
-  document.getElementById('ov-clocked-in').textContent = clockedIn;
-  document.getElementById('ov-total-emp').textContent = employees.length;
-  document.getElementById('ov-done-today').textContent = doneToday;
-  document.getElementById('ov-not-in').textContent = notStarted;
-
-  // Live list
-  const list = document.getElementById('ov-live-list');
-  if (!employees.length) { list.innerHTML = '<p class="text-muted small">No employees yet.</p>'; return; }
-
-  const sorted = [...employees].sort((a, b) => {
-    const ar = a.records?.find(r=>r.date===today);
-    const br = b.records?.find(r=>r.date===today);
-    const aScore = ar?.clockIn ? (ar.clockOut ? 1 : 2) : 0;
-    const bScore = br?.clockIn ? (br.clockOut ? 1 : 2) : 0;
-    return bScore - aScore;
-  });
-
-  list.innerHTML = sorted.map((emp, i) => {
-    const rec = emp.records?.find(r => r.date === today);
-    const idx = employees.findIndex(e => e.id === emp.id);
-    const isIn = rec?.clockIn && !rec?.clockOut;
-    const isDone = rec?.clockOut;
-    let statusText = 'Not started';
-    let timeStr = '';
-    if (isIn) {
-      statusText = 'Clocked in';
-      timeStr = new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    } else if (isDone) {
-      statusText = 'Done';
-      const mins = Math.floor((new Date(rec.clockOut) - new Date(rec.clockIn)) / 60000);
-      timeStr = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
-    }
-    const dotClass = isIn ? 'live-dot' : isDone ? 'live-dot' : 'live-dot offline-dot';
-    const dotColor = isDone ? 'style="background:var(--accent2);box-shadow:0 0 6px var(--accent2)"' : '';
-    return \`
-      <div class="emp-row">
-        <span class="\${dotClass}" \${dotColor}></span>
-        <div class="avatar" style="background:\${getAvatarColor(idx)};color:#0a0a0a;width:36px;height:36px;font-size:12px;border-radius:10px">\${getInitials(emp.name)}</div>
-        <div class="emp-row-info">
-          <div class="emp-row-name">\${emp.name}</div>
-          <div class="emp-row-meta">\${statusText}\${timeStr ? ' · ' + timeStr : ''}</div>
-        </div>
-        \${isIn ? \`<span class="badge badge-in"><span class="badge-dot"></span>Live</span>\` :
-          isDone ? \`<span class="badge" style="background:rgba(71,212,255,.15);color:var(--accent2);border:1px solid rgba(71,212,255,.3)">Done</span>\` :
-          \`<span class="badge badge-out">Out</span>\`}
-      </div>\`;
-  }).join('');
-}
-
-// ── EMPLOYEES PANEL ───────────────────────────────────────────
-function renderAdminEmployees() {
-  const list = document.getElementById('admin-emp-list');
-  document.getElementById('emp-count-label').textContent = employees.length + ' / 20 employees';
-
-  if (!employees.length) {
-    list.innerHTML = '<p class="text-muted small" style="text-align:center;padding:20px 0">No employees yet. Add one above.</p>';
-    return;
-  }
-
+  const list = document.getElementById('ov-list');
   list.innerHTML = employees.map((emp, i) => {
-    const today = todayKey();
-    const rec = emp.records?.find(r => r.date === today);
-    const status = rec?.clockOut ? '✓ Done' : rec?.clockIn ? '● Active' : '○ Out';
-    const statusColor = rec?.clockOut ? 'var(--accent2)' : rec?.clockIn ? 'var(--success)' : 'var(--muted)';
-    return \`
-      <div class="emp-row">
-        <div class="avatar" style="background:\${getAvatarColor(i)};color:#0a0a0a;width:40px;height:40px;font-size:13px;border-radius:12px">\${getInitials(emp.name)}</div>
-        <div class="emp-row-info">
-          <div class="emp-row-name">\${emp.name}</div>
-          <div class="emp-row-meta" style="color:\${statusColor}">\${status}</div>
-        </div>
-        <div class="emp-row-actions">
-          <button class="icon-btn" onclick="openEditEmployee('\${emp.id}')" title="Edit">✏️</button>
-          <button class="icon-btn danger" onclick="deleteEmployee('\${emp.id}', '\${emp.name}')" title="Remove">🗑️</button>
-        </div>
-      </div>\`;
+    const r    = emp.records?.find(r => r.date === today);
+    const isIn = r?.clockIn && !r?.clockOut;
+    const isDone = r?.clockOut;
+    const dot  = isIn ? 'ldot ldot-on' : isDone ? 'ldot ldot-done' : 'ldot ldot-off';
+    const st   = isIn ? 'Working' : isDone ? 'Done' : 'Not started';
+    const time = isIn ? new Date(r.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : isDone ? new Date(r.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div class="emp-row">
+      <span class="${dot}"></span>
+      <div class="avatar" style="background:${avatarColor(i)};color:#0a0a0a;width:36px;height:36px;font-size:12px;border-radius:10px">${initials(emp.name)}</div>
+      <div class="emp-row-info">
+        <div style="font-family:var(--fd);font-weight:700;font-size:14px">${emp.name}</div>
+        <div style="font-size:12px;color:var(--muted)">${st}${time ? ' · ' + time : ''}</div>
+      </div>
+    </div>`;
   }).join('');
 }
 
-function openAddEmployee() {
-  if (employees.length >= 20) { toast('Max 20 employees reached'); return; }
-  document.getElementById('emp-edit-title').textContent = 'Add Employee';
-  document.getElementById('emp-edit-id').value = '';
+function renderAdminEmps() {
+  document.getElementById('emp-count').textContent = employees.length + ' / 20 employees';
+  const today = todayKey();
+  document.getElementById('emp-list').innerHTML = employees.length
+    ? employees.map((emp, i) => {
+        const r  = emp.records?.find(r => r.date === today);
+        const st = r?.clockOut ? '✓ Done' : r?.clockIn ? '● Active' : '○ Out';
+        const sc = r?.clockOut ? 'var(--accent2)' : r?.clockIn ? 'var(--success)' : 'var(--muted)';
+        return `<div class="emp-row">
+          <div class="avatar" style="background:${avatarColor(i)};color:#0a0a0a;width:40px;height:40px;font-size:13px;border-radius:12px">${initials(emp.name)}</div>
+          <div class="emp-row-info">
+            <div style="font-family:var(--fd);font-weight:700">${emp.name}</div>
+            <div style="font-size:12px;color:${sc}">${st}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="ibtn" onclick="openEditEmp('${emp.id}')">✏️</button>
+            <button class="ibtn" style="color:var(--danger);border-color:rgba(255,71,71,.3)" onclick="deleteEmp('${emp.id}','${emp.name}')">🗑️</button>
+          </div>
+        </div>`;
+      }).join('')
+    : '<p class="text-muted small" style="text-align:center;padding:20px 0">No employees yet.</p>';
+}
+
+function openAddEmp() {
+  if (employees.length >= 20) { toast('Max 20 employees'); return; }
+  document.getElementById('emp-modal-title').textContent = 'Add Employee';
+  document.getElementById('emp-edit-id').value   = '';
   document.getElementById('emp-edit-name').value = '';
-  document.getElementById('emp-edit-pin').value = '';
-  document.getElementById('modal-emp-edit').classList.add('open');
+  document.getElementById('emp-edit-pin').value  = '';
+  openModal('m-emp');
 }
 
-function openEditEmployee(id) {
-  const emp = getEmployee(id);
+function openEditEmp(id) {
+  const emp = getEmp(id);
   if (!emp) return;
-  document.getElementById('emp-edit-title').textContent = 'Edit Employee';
-  document.getElementById('emp-edit-id').value = emp.id;
+  document.getElementById('emp-modal-title').textContent = 'Edit Employee';
+  document.getElementById('emp-edit-id').value   = emp.id;
   document.getElementById('emp-edit-name').value = emp.name;
-  document.getElementById('emp-edit-pin').value = emp.pin || '';
-  document.getElementById('modal-emp-edit').classList.add('open');
+  document.getElementById('emp-edit-pin').value  = emp.pin || '';
+  openModal('m-emp');
 }
 
-function saveEmployeeEdit() {
+function saveEmp() {
   const id   = document.getElementById('emp-edit-id').value;
   const name = document.getElementById('emp-edit-name').value.trim();
   const pin  = document.getElementById('emp-edit-pin').value.trim();
@@ -1576,319 +1048,178 @@ function saveEmployeeEdit() {
   if (!/^\d{4}$/.test(pin)) { toast('PIN must be 4 digits'); return; }
 
   if (id) {
-    // Edit existing
-    const emp = getEmployee(id);
-    if (!emp) return;
-    if (pin !== emp.pin && employees.find(e => e.id !== id && e.pin === pin)) {
-      toast('PIN already taken by another employee'); return;
-    }
+    const emp = getEmp(id);
+    if (pin !== emp.pin && employees.find(e => e.id !== id && e.pin === pin)) { toast('PIN taken'); return; }
     emp.name = name; emp.pin = pin;
-    updateEmployee(emp);
-    toast('✓ ' + name + ' updated');
+    updateEmp(emp);
+    toast('✓ Updated');
   } else {
-    // Add new
-    if (employees.find(e => e.pin === pin)) { toast('PIN already taken'); return; }
-    const newEmp = { id: 'emp_' + Date.now(), name, pin, records: [], joinedDate: todayKey() };
-    employees.push(newEmp);
-    saveState();
+    if (employees.find(e => e.pin === pin)) { toast('PIN taken'); return; }
+    const emp = { id: 'emp_' + Date.now(), name, pin, records: [], joinedDate: todayKey() };
+    employees.push(emp);
+    save();
+    postSheet({ type: 'newEmployee', employeeId: emp.id, employeeName: name, date: todayKey() });
     toast('✓ ' + name + ' added');
-    // Also sync to Google Sheets
-    sendToSheet({ type: 'newEmployee', employeeId: newEmp.id, employeeName: name, date: todayKey() });
   }
-
-  document.getElementById('modal-emp-edit').classList.remove('open');
-  renderAdminEmployees();
+  closeModal('m-emp');
+  renderAdminEmps();
   renderAdminOverview();
 }
 
-function deleteEmployee(id, name) {
-  if (!confirm('Remove ' + name + ' from the team? Their clock records will be kept.')) return;
+function deleteEmp(id, name) {
+  if (!confirm('Remove ' + name + '?')) return;
   employees = employees.filter(e => e.id !== id);
-  saveState();
+  save();
   toast('Removed ' + name);
-  renderAdminEmployees();
+  renderAdminEmps();
   renderAdminOverview();
 }
 
-// ── TODAY PANEL ───────────────────────────────────────────────
 function renderAdminToday() {
   const today = todayKey();
-  document.getElementById('today-panel-date').textContent =
-    new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
-
-  const list = document.getElementById('admin-today-list');
-  const withRecords = employees.filter(emp => emp.records?.find(r => r.date === today && r.clockIn));
-
-  if (!withRecords.length) {
-    list.innerHTML = '<div class="card"><p class="text-muted small" style="text-align:center">No one has clocked in yet today.</p></div>';
-    return;
-  }
-
-  list.innerHTML = withRecords.map((emp, i) => {
-    const rec = emp.records.find(r => r.date === today);
-    const idx = employees.findIndex(e => e.id === emp.id);
-    const inTime  = new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    const outTime = rec.clockOut ? new Date(rec.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
-    const mins    = rec.clockOut ? Math.floor((new Date(rec.clockOut) - new Date(rec.clockIn)) / 60000) : null;
-    const hoursStr = mins ? Math.floor(mins/60) + 'h ' + (mins%60) + 'm' : 'In progress';
-    const tasks   = rec.tasks || [];
-    const done    = tasks.filter(t => t.status === 'done').length;
-    const partial = tasks.filter(t => t.status === 'partial').length;
-
-    return \`
-      <div class="card" style="margin-bottom:10px">
-        <div class="flex justify-between items-center" style="margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div class="avatar" style="background:\${getAvatarColor(idx)};color:#0a0a0a;width:36px;height:36px;font-size:12px;border-radius:10px">\${getInitials(emp.name)}</div>
-            <div>
-              <div style="font-family:var(--font-display);font-weight:700">\${emp.name}</div>
-              <div class="text-muted small">In \${inTime} · Out \${outTime} · \${hoursStr}</div>
-            </div>
+  document.getElementById('today-hdr').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const list = document.getElementById('today-list');
+  const active = employees.filter(e => e.records?.find(r => r.date === today && r.clockIn));
+  if (!active.length) { list.innerHTML = '<div class="card"><p class="text-muted small" style="text-align:center">No one clocked in yet.</p></div>'; return; }
+  list.innerHTML = active.map((emp, i) => {
+    const r    = emp.records.find(r => r.date === today);
+    const idx  = employees.findIndex(e => e.id === emp.id);
+    const inT  = new Date(r.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const outT = r.clockOut ? new Date(r.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
+    const mins = r.clockOut ? Math.floor((new Date(r.clockOut) - new Date(r.clockIn)) / 60000) : null;
+    const tasks = r.tasks || [];
+    return `<div class="card">
+      <div class="flex jb ic" style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="background:${avatarColor(idx)};color:#0a0a0a;width:36px;height:36px;font-size:12px;border-radius:10px">${initials(emp.name)}</div>
+          <div>
+            <div style="font-family:var(--fd);font-weight:700">${emp.name}</div>
+            <div class="text-muted small">In ${inT} · Out ${outT}${mins ? ' · ' + Math.floor(mins/60) + 'h ' + (mins%60) + 'm' : ''}</div>
           </div>
-          \${tasks.length ? \`<span style="font-size:12px;color:var(--success)">\${done}/\${tasks.length} done</span>\` : ''}
         </div>
-        \${tasks.length ? \`<div>\${tasks.map(t => \`
-          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:16px">\${t.status==='done'?'✅':t.status==='partial'?'🟡':'⬜'}</span>
-            <span style="font-size:13px;\${t.status==='done'?'text-decoration:line-through;color:var(--muted)':''}">\${t.text}</span>
-          </div>\`).join('')}</div>\` : '<p class="text-muted small">No tasks logged.</p>'}
-        \${rec.notes ? \`<div style="margin-top:10px;font-size:12px;color:var(--muted);font-style:italic">"  \${rec.notes}"</div>\` : ''}
-      </div>\`;
+        ${tasks.length ? `<span style="font-size:12px;color:var(--success)">${tasks.filter(t=>t.status==='done').length}/${tasks.length} done</span>` : ''}
+      </div>
+      ${tasks.map(t => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span>${t.status==='done'?'✅':t.status==='partial'?'🟡':'⬜'}</span>
+        <span style="font-size:13px;${t.status==='done'?'text-decoration:line-through;color:var(--muted)':''}">${t.text}</span>
+      </div>`).join('')}
+      ${r.notes ? `<div style="margin-top:8px;font-size:12px;color:var(--muted);font-style:italic">"${r.notes}"</div>` : ''}
+    </div>`;
   }).join('');
 }
 
-// ── SETTINGS PANEL ────────────────────────────────────────────
 function renderAdminSettings() {
-  document.getElementById('set-company-val').textContent = config.company;
-  document.getElementById('set-lat-val').textContent     = config.lat;
-  document.getElementById('set-lng-val').textContent     = config.lng;
-  document.getElementById('set-radius-val').textContent  = config.radius + ' meters';
-  document.getElementById('set-webhook-val').textContent = config.webhook || 'Not set';
-
-  // Pre-fill inputs
-  document.getElementById('set-company-input').value  = config.company;
-  document.getElementById('set-lat-input').value      = config.lat;
-  document.getElementById('set-lng-input').value      = config.lng;
-  document.getElementById('set-radius-input').value   = config.radius;
-  document.getElementById('set-webhook-input').value  = config.webhook || '';
+  document.getElementById('sv-company').textContent = config.company;
+  document.getElementById('sv-lat').textContent     = config.lat;
+  document.getElementById('sv-lng').textContent     = config.lng;
+  document.getElementById('sv-radius').textContent  = config.radius + ' meters';
+  document.getElementById('si-company').value = config.company;
+  document.getElementById('si-lat').value     = config.lat;
+  document.getElementById('si-lng').value     = config.lng;
+  document.getElementById('si-radius').value  = config.radius;
 }
 
-function toggleSettingEdit(key) {
-  const el = document.getElementById('set-' + key + '-edit');
-  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+function toggleEdit(key) {
+  const el = document.getElementById('se-' + key);
+  el.style.display = el.style.display === 'flex' ? 'none' : 'flex';
 }
 
 function saveSetting(key) {
-  let val;
-  if (key === 'webhook') {
-    val = document.getElementById('set-webhook-input').value.trim();
-    if (!val) { toast('Enter a URL'); return; }
-  } else {
-    val = document.getElementById('set-' + key + '-input').value.trim();
-    if (!val) { toast('Enter a value'); return; }
-  }
-
-  if (key === 'adminPin') {
-    if (!/^\d{4}$/.test(val)) { toast('PIN must be 4 digits'); return; }
-  }
+  let val = document.getElementById('si-' + key)?.value?.trim();
+  if (!val) { toast('Enter a value'); return; }
+  if (key === 'adminPin' && !/^\d{4}$/.test(val)) { toast('PIN must be 4 digits'); return; }
   if (key === 'lat' || key === 'lng') val = parseFloat(val);
   if (key === 'radius') val = parseInt(val);
-
   config[key] = val;
-  saveState();
-
-  // Hide edit field and refresh display
-  const editEl = document.getElementById('set-' + key + '-edit');
-  if (editEl) editEl.style.display = 'none';
+  save();
+  const el = document.getElementById('se-' + key);
+  if (el) el.style.display = 'none';
   renderAdminSettings();
-  toast('✓ ' + key + ' updated');
+  toast('✓ ' + key + ' saved');
 }
 
+// ════════════════════════════════════════════════
+// CONNECT WORKSPACE
+// ════════════════════════════════════════════════
+function openConnectModal() { openModal('m-connect'); }
 
+async function connectWorkspace() {
+  const url = document.getElementById('connect-url').value.trim();
+  if (!url) { toast('Paste the URL first'); return; }
+  const btn = document.getElementById('connect-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Connecting…';
+  try {
+    const res  = await fetch(url + '?action=getEmployees');
+    const data = await res.json();
+    if (!data.employees?.length) { toast('No employees found — check URL'); btn.disabled=false; btn.textContent='Connect & Load Employees'; return; }
+    config.webhook = url;
+    data.employees.forEach(f => {
+      if (!employees.find(e => e.id === f.id))
+        employees.push({ id: f.id, name: f.name, records: [], joinedDate: todayKey() });
+    });
+    save();
+    closeModal('m-connect');
+    toast('✓ Connected!');
+    showLogin();
+  } catch(e) {
+    toast('❌ Could not connect — check URL');
+  }
+  btn.disabled = false;
+  btn.textContent = 'Connect & Load Employees';
+}
+
+// ════════════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close modal on overlay tap
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// ════════════════════════════════════════════════
+// CLOCK
+// ════════════════════════════════════════════════
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const cl = document.getElementById('live-clock');
+    const dt = document.getElementById('live-date');
+    if (cl) cl.textContent = now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    if (dt) dt.textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    if (currentUser) {
+      const r = currentUser.records?.find(r => r.date === todayKey());
+      if (r?.clockIn && !r?.clockOut) updateHours(r);
+    }
+  }
+  tick();
+  setInterval(tick, 10000);
+}
+
+// ════════════════════════════════════════════════
+// LOGOUT
+// ════════════════════════════════════════════════
+function doLogout() {
+  currentUser = null;
+  isAtWork    = false;
+  if (locWatcher) navigator.geolocation.clearWatch(locWatcher);
+  showLogin();
+}
+
+// ════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════
+let toastT = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('show'), 3000);
+}
 </script>
-
-<!-- ═══════════════════════════════════════════
-     MODAL: Admin Login
-════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal-admin-login">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <h2 style="margin-bottom:6px">Admin Access</h2>
-    <p class="text-muted small" style="margin-bottom:20px">Enter your admin PIN to continue.</p>
-    <div class="input-group">
-      <label>Admin PIN</label>
-      <input type="password" id="admin-pin-input" placeholder="••••" maxlength="4" inputmode="numeric"
-        onkeydown="if(event.key==='Enter') submitAdminLogin()">
-    </div>
-    <button class="btn btn-primary" onclick="submitAdminLogin()">Enter Dashboard</button>
-    <button class="btn btn-ghost mt-8" onclick="document.getElementById('modal-admin-login').classList.remove('open')">Cancel</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     MODAL: Add / Edit Employee
-════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal-emp-edit">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <h2 id="emp-edit-title" style="margin-bottom:20px">Add Employee</h2>
-    <input type="hidden" id="emp-edit-id">
-    <div class="input-group">
-      <label>Full Name</label>
-      <input type="text" id="emp-edit-name" placeholder="Jane Smith" maxlength="30">
-    </div>
-    <div class="input-group">
-      <label>4-Digit PIN</label>
-      <input type="number" id="emp-edit-pin" placeholder="1234" maxlength="4" max="9999" inputmode="numeric">
-    </div>
-    <button class="btn btn-primary" onclick="saveEmployeeEdit()">Save Employee</button>
-    <button class="btn btn-ghost mt-8" onclick="document.getElementById('modal-emp-edit').classList.remove('open')">Cancel</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     SCREEN: ADMIN DASHBOARD
-════════════════════════════════════════════ -->
-<div class="screen" id="screen-admin">
-  <div class="admin-header admin-nav">
-    <div>
-      <div class="admin-badge">Admin</div>
-      <h2 style="margin-top:6px" id="admin-company-name">VOER-Staff 2026</h2>
-    </div>
-    <button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:13px" onclick="exitAdmin()">← Exit</button>
-  </div>
-
-  <!-- Admin Tab Bar -->
-  <div style="padding:0 20px;max-width:480px;margin:0 auto;width:100%;padding-top:12px">
-    <div class="admin-tabs">
-      <button class="admin-tab active" onclick="switchAdminTab('overview')">Overview</button>
-      <button class="admin-tab" onclick="switchAdminTab('employees')">Employees</button>
-      <button class="admin-tab" onclick="switchAdminTab('today')">Today</button>
-      <button class="admin-tab" onclick="switchAdminTab('settings')">Settings</button>
-    </div>
-  </div>
-
-  <div class="content pb-nav" style="padding-top:0">
-
-    <!-- ── PANEL: Overview ── -->
-    <div class="admin-panel active" id="panel-overview">
-      <div class="summary-grid">
-        <div class="summary-card">
-          <div class="summary-num text-accent" id="ov-clocked-in">0</div>
-          <div class="summary-label">Clocked In Now</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-num" id="ov-total-emp">0</div>
-          <div class="summary-label">Total Employees</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-num text-success" id="ov-done-today">0</div>
-          <div class="summary-label">Finished Today</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-num" id="ov-not-in">0</div>
-          <div class="summary-label">Not Started</div>
-        </div>
-      </div>
-      <h3 style="margin-bottom:12px">Live Status</h3>
-      <div id="ov-live-list"></div>
-    </div>
-
-    <!-- ── PANEL: Employees ── -->
-    <div class="admin-panel" id="panel-employees">
-      <button class="btn btn-primary" style="margin-bottom:16px" onclick="openAddEmployee()">+ Add New Employee</button>
-      <div id="admin-emp-list"></div>
-      <p class="text-muted small" style="margin-top:12px;text-align:center" id="emp-count-label"></p>
-    </div>
-
-    <!-- ── PANEL: Today ── -->
-    <div class="admin-panel" id="panel-today">
-      <h3 style="margin-bottom:4px" id="today-panel-date"></h3>
-      <p class="text-muted small" style="margin-bottom:16px">Full task breakdown for today</p>
-      <div id="admin-today-list"></div>
-    </div>
-
-    <!-- ── PANEL: Settings ── -->
-    <div class="admin-panel" id="panel-settings">
-      <div class="card">
-        <h3 style="margin-bottom:16px">Workplace Settings</h3>
-
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Company Name</div>
-            <div class="settings-val" id="set-company-val"></div>
-            <div class="inline-edit" id="set-company-edit" style="display:none">
-              <input type="text" id="set-company-input" maxlength="40">
-              <button class="btn btn-primary" onclick="saveSetting('company')">Save</button>
-            </div>
-          </div>
-          <button class="icon-btn" onclick="toggleSettingEdit('company')">✏️</button>
-        </div>
-
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Latitude</div>
-            <div class="settings-val" id="set-lat-val"></div>
-            <div class="inline-edit" id="set-lat-edit" style="display:none">
-              <input type="number" id="set-lat-input" step="0.000001">
-              <button class="btn btn-primary" onclick="saveSetting('lat')">Save</button>
-            </div>
-          </div>
-          <button class="icon-btn" onclick="toggleSettingEdit('lat')">✏️</button>
-        </div>
-
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Longitude</div>
-            <div class="settings-val" id="set-lng-val"></div>
-            <div class="inline-edit" id="set-lng-edit" style="display:none">
-              <input type="number" id="set-lng-input" step="0.000001">
-              <button class="btn btn-primary" onclick="saveSetting('lng')">Save</button>
-            </div>
-          </div>
-          <button class="icon-btn" onclick="toggleSettingEdit('lng')">✏️</button>
-        </div>
-
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Clock-In Radius</div>
-            <div class="settings-val" id="set-radius-val"></div>
-            <div class="inline-edit" id="set-radius-edit" style="display:none">
-              <input type="number" id="set-radius-input" min="50" max="5000">
-              <button class="btn btn-primary" onclick="saveSetting('radius')">Save</button>
-            </div>
-          </div>
-          <button class="icon-btn" onclick="toggleSettingEdit('radius')">✏️</button>
-        </div>
-
-        <div class="settings-row">
-          <div>
-            <div class="settings-label">Admin PIN</div>
-            <div class="settings-val">••••</div>
-            <div class="inline-edit" id="set-adminPin-edit" style="display:none">
-              <input type="number" id="set-adminPin-input" placeholder="New PIN" maxlength="4" max="9999">
-              <button class="btn btn-primary" onclick="saveSetting('adminPin')">Save</button>
-            </div>
-          </div>
-          <button class="icon-btn" onclick="toggleSettingEdit('adminPin')">✏️</button>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:4px">
-        <h3 style="margin-bottom:12px">Webhook URL</h3>
-        <p class="text-muted small" style="margin-bottom:10px;word-break:break-all" id="set-webhook-val"></p>
-        <div class="input-group" style="margin-bottom:8px">
-          <label>Update URL</label>
-          <input type="url" id="set-webhook-input" placeholder="https://script.google.com/macros/s/...">
-        </div>
-        <button class="btn btn-secondary" onclick="saveSetting('webhook')">Update Webhook</button>
-      </div>
-
-      <button class="btn btn-danger" style="margin-top:8px" onclick="adminSignOut()">Sign Out of Admin</button>
-    </div>
-
-  </div>
-</div>
-
 </body>
 </html>
