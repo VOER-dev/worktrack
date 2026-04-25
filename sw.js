@@ -1,6 +1,6 @@
 // ── BUMP THIS NUMBER every time you upload a new version of the app ──
 // Change v2 → v3 → v4 etc. This forces all phones to download the update.
-const CACHE = 'worktrack-v4';
+const CACHE = 'worktrack-v7';
 const ASSETS = ['/index.html', '/manifest.json'];
 
 // INSTALL: cache all assets fresh
