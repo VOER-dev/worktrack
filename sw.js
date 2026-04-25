@@ -1,17 +1,17 @@
-// ── BUMP THIS NUMBER every time you upload a new version of the app ──
-// Change v2 → v3 → v4 etc. This forces all phones to download the update.
-const CACHE = 'worktrack-v11';
-const ASSETS = ['/index.html', '/manifest.json'];
+const CACHE = 'worktrack-v12';
+const ASSETS = [
+  '/worktrack/',
+  '/worktrack/index.html',
+  '/worktrack/manifest.json'
+];
 
-// INSTALL: cache all assets fresh
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS))
+    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {}))
   );
   self.skipWaiting();
 });
 
-// ACTIVATE: delete ALL old caches so employees don't get stale version
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -20,7 +20,6 @@ self.addEventListener('activate', e => {
   );
 });
 
-// FETCH: network first, fall back to cache
 self.addEventListener('fetch', e => {
   e.respondWith(
     fetch(e.request)
@@ -29,11 +28,12 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE).then(c => c.put(e.request, copy));
         return res;
       })
-      .catch(() => caches.match(e.request).then(cached => cached || caches.match('/index.html')))
+      .catch(() => caches.match(e.request)
+        .then(cached => cached || caches.match('/worktrack/'))
+      )
   );
 });
 
-// MESSAGE: allow the app to manually trigger an update check
 self.addEventListener('message', e => {
   if (e.data === 'skipWaiting') self.skipWaiting();
 });
