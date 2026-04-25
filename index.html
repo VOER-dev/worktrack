@@ -849,40 +849,76 @@ function renderTeam() {
     return bs - as;
   });
 
-  feed.innerHTML = sorted.map((emp, i) => {
-    const rec  = emp.records?.find(r => r.date === today);
-    const idx  = employees.findIndex(e => e.id === emp.id);
-    const isIn = rec?.clockIn && !rec?.clockOut;
-    const done = rec?.clockOut;
-    const tasks = rec?.tasks || [];
-    const timeStr = isIn
-      ? 'In ' + new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
-      : done
-      ? 'In ' + new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' · Out ' + new Date(rec.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})
-      : '';
-    const statusColor = isIn ? 'var(--success)' : done ? 'var(--accent2)' : 'var(--muted)';
-    const statusText  = isIn ? '● Working' : done ? '✓ Done' : '○ Not started';
-    return `
-      <div class="feed-item">
-        <div class="avatar" style="background:${avatarColor(idx)};color:#0a0a0a">${initials(emp.name)}</div>
-        <div class="feed-content">
-          <div class="flex jb ic">
-            <span style="font-family:var(--fd);font-weight:700;font-size:14px">${emp.name}</span>
-            <span style="font-size:11px;color:${statusColor}">${statusText}</span>
-          </div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:6px">${timeStr}</div>
-          ${tasks.length
-            ? tasks.map(t => `<span class="tag" style="${t.status==='done'?'border-color:rgba(71,255,138,.3);color:var(--success)':t.status==='partial'?'border-color:rgba(232,255,71,.3);color:var(--accent)':''}">${t.text}</span>`).join('')
-            : '<span style="font-size:12px;color:var(--muted)">No tasks logged</span>'}
-          ${rec?.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">"${rec.notes}"</div>` : ''}
-        </div>
-      </div>`;
+  feed.innerHTML = sorted.map((emp) => {
+    const rec    = emp.records?.find(r => r.date === today);
+    const idx    = employees.findIndex(e => e.id === emp.id);
+    const isIn   = rec?.clockIn && !rec?.clockOut;
+    const isDone = !!rec?.clockOut;
+    const tasks  = rec?.tasks || [];
+    const doneCt = tasks.filter(t => t.status === 'done').length;
+    const inTime  = rec?.clockIn  ? new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : null;
+    const outTime = rec?.clockOut ? new Date(rec.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : null;
+    const mins    = rec?.clockIn && rec?.clockOut ? Math.floor((new Date(rec.clockOut) - new Date(rec.clockIn)) / 60000) : null;
+    const hoursStr = mins !== null ? Math.floor(mins/60) + 'h ' + (mins%60) + 'm' : null;
+    const statusColor = isIn ? 'var(--success)' : isDone ? 'var(--accent2)' : 'var(--muted)';
+    const statusText  = isIn ? '● Working now' : isDone ? '✓ Done for the day' : '○ Not started';
+    const dotStyle    = isIn ? 'background:var(--success);box-shadow:0 0 6px var(--success)' : isDone ? 'background:var(--accent2)' : 'background:var(--muted)';
+
+    return '<div style="border-bottom:1px solid var(--border);padding:18px 0">'
+      // Header
+      + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:' + (rec?.clockIn ? '10px' : '0') + '">'
+        + '<div style="position:relative">'
+          + '<div class="avatar" style="background:' + avatarColor(idx) + ';color:#0a0a0a">' + initials(emp.name) + '</div>'
+          + '<span style="position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg);' + dotStyle + '"></span>'
+        + '</div>'
+        + '<div style="flex:1">'
+          + '<div style="font-family:var(--fd);font-weight:700;font-size:15px">' + emp.name + '</div>'
+          + '<div style="font-size:12px;color:' + statusColor + ';margin-top:2px">' + statusText + '</div>'
+        + '</div>'
+        + (tasks.length ? '<div style="text-align:right"><div style="font-family:var(--fd);font-size:14px;font-weight:800;color:var(--success)">' + doneCt + '/' + tasks.length + '</div><div style="font-size:10px;color:var(--muted)">tasks done</div></div>' : '')
+      + '</div>'
+
+      // Clock In / Out / Total boxes
+      + (rec?.clockIn
+        ? '<div style="display:flex;gap:8px;margin-bottom:10px">'
+            + '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px">'
+              + '<div style="font-size:10px;color:var(--muted);font-family:var(--fd);font-weight:700;letter-spacing:.05em;text-transform:uppercase">In</div>'
+              + '<div style="font-family:var(--fd);font-size:16px;font-weight:800;color:var(--success)">' + inTime + '</div>'
+            + '</div>'
+            + '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px">'
+              + '<div style="font-size:10px;color:var(--muted);font-family:var(--fd);font-weight:700;letter-spacing:.05em;text-transform:uppercase">Out</div>'
+              + '<div style="font-family:var(--fd);font-size:16px;font-weight:800;color:' + (outTime ? 'var(--accent2)' : 'var(--muted)') + '">' + (outTime || '—') + '</div>'
+            + '</div>'
+            + (hoursStr
+              ? '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px">'
+                  + '<div style="font-size:10px;color:var(--muted);font-family:var(--fd);font-weight:700;letter-spacing:.05em;text-transform:uppercase">Hours</div>'
+                  + '<div style="font-family:var(--fd);font-size:16px;font-weight:800;color:var(--accent)">' + hoursStr + '</div>'
+                + '</div>'
+              : '')
+          + '</div>'
+        : '')
+
+      // Tasks list
+      + (tasks.length
+        ? '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px">'
+            + '<div style="font-size:10px;font-family:var(--fd);font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">Tasks</div>'
+            + tasks.map(t =>
+                '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'
+                  + '<span style="font-size:14px">' + (t.status==='done'?'✅':t.status==='partial'?'🟡':'⬜') + '</span>'
+                  + '<span style="font-size:13px;flex:1;' + (t.status==='done'?'text-decoration:line-through;color:var(--muted)':'') + '">' + t.text + '</span>'
+                  + '<span style="font-size:10px;font-family:var(--fd);font-weight:700;padding:2px 6px;border-radius:4px;' + (t.status==='done'?'background:rgba(71,255,138,.15);color:var(--success)':t.status==='partial'?'background:rgba(232,255,71,.15);color:var(--accent)':'background:var(--surface);color:var(--muted)') + '">' + (t.status==='done'?'Done':t.status==='partial'?'Partial':'Pending') + '</span>'
+                + '</div>'
+              ).join('')
+          + '</div>'
+        : '<div style="font-size:13px;color:var(--muted)">No tasks logged today</div>')
+
+      // Notes
+      + (rec?.notes ? '<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:13px;color:var(--muted);font-style:italic">&quot;' + rec.notes + '&quot;</div>' : '')
+    + '</div>';
   }).join('');
 }
 
-// ════════════════════════════════════════════════
-// PROFILE
-// ════════════════════════════════════════════════
+
 function renderProfile() {
   const emp = currentUser;
   const idx = employees.findIndex(e => e.id === emp.id);
@@ -1006,13 +1042,15 @@ function renderAdminEmps() {
         const r  = emp.records?.find(r => r.date === today);
         const st = r?.clockOut ? '✓ Done' : r?.clockIn ? '● Active' : '○ Out';
         const sc = r?.clockOut ? 'var(--accent2)' : r?.clockIn ? 'var(--success)' : 'var(--muted)';
-        return `<div class="emp-row">
+        const clockedInNow = r?.clockIn && !r?.clockOut;
+        return `<div class="emp-row" style="flex-wrap:wrap;gap:10px">
           <div class="avatar" style="background:${avatarColor(i)};color:#0a0a0a;width:40px;height:40px;font-size:13px;border-radius:12px">${initials(emp.name)}</div>
           <div class="emp-row-info">
             <div style="font-family:var(--fd);font-weight:700">${emp.name}</div>
-            <div style="font-size:12px;color:${sc}">${st}</div>
+            <div style="font-size:12px;color:${sc}">${st}${r?.clockIn ? ' · In ' + new Date(r.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}</div>
           </div>
-          <div style="display:flex;gap:6px">
+          <div style="display:flex;gap:6px;align-items:center">
+            ${clockedInNow ? `<button class="ibtn" style="width:auto;padding:0 10px;font-size:11px;font-family:var(--fd);font-weight:700;color:var(--danger);border-color:rgba(255,71,71,.4);white-space:nowrap" onclick="adminForceClockOut('${emp.id}','${emp.name}')">Force Out</button>` : ''}
             <button class="ibtn" onclick="openEditEmp('${emp.id}')">✏️</button>
             <button class="ibtn" style="color:var(--danger);border-color:rgba(255,71,71,.3)" onclick="deleteEmp('${emp.id}','${emp.name}')">🗑️</button>
           </div>
@@ -1071,6 +1109,33 @@ function deleteEmp(id, name) {
   employees = employees.filter(e => e.id !== id);
   save();
   toast('Removed ' + name);
+  renderAdminEmps();
+  renderAdminOverview();
+}
+
+function adminForceClockOut(empId, empName) {
+  if (!confirm('Force clock out ' + empName + ' now?')) return;
+  const emp   = getEmp(empId);
+  if (!emp) return;
+  const today = todayKey();
+  const idx   = emp.records?.findIndex(r => r.date === today);
+  if (idx === undefined || idx === -1) return;
+  const rec = emp.records[idx];
+  if (!rec.clockIn || rec.clockOut) { toast('Not currently clocked in'); return; }
+  rec.clockOut = new Date().toISOString();
+  rec.notes    = (rec.notes ? rec.notes + ' ' : '') + '[Admin clocked out]';
+  emp.records[idx] = rec;
+  updateEmp(emp);
+  postSheet({ type: 'clockOut',
+    employeeId: emp.id, employeeName: emp.name,
+    date: rec.date, clockIn: rec.clockIn, clockOut: rec.clockOut,
+    tasks: (rec.tasks||[]).map(t => t.text + ' [' + t.status + ']').join(' | '),
+    tasksDone: (rec.tasks||[]).filter(t=>t.status==='done').length,
+    tasksPartial: (rec.tasks||[]).filter(t=>t.status==='partial').length,
+    tasksTotal: (rec.tasks||[]).length,
+    notes: rec.notes, locationLat: '', locationLng: ''
+  });
+  toast('✓ ' + empName + ' clocked out');
   renderAdminEmps();
   renderAdminOverview();
 }
