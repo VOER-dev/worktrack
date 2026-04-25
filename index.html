@@ -530,19 +530,20 @@ async function showLogin() {
 
   // Fetch from Sheets
   if (config.webhook) {
-    try {
-      const res  = await fetch(config.webhook + '?action=getEmployees');
-      const data = await res.json();
-      if (data.employees && data.employees.length > 0) {
-        data.employees.forEach(f => {
-          if (!employees.find(e => e.id === f.id))
-            employees.push({ id: f.id, name: f.name, records: [], joinedDate: todayKey() });
-          else
-            employees.find(e => e.id === f.id).name = f.name;
-        });
-        save();
-      }
-    } catch(e) { /* use local cache */ }
+    await new Promise(resolve => {
+      fetchFromSheet('getEmployees', {}, function(data) {
+        if (data && data.employees && data.employees.length > 0) {
+          data.employees.forEach(f => {
+            if (!employees.find(e => e.id === f.id))
+              employees.push({ id: f.id, name: f.name, records: [], joinedDate: todayKey() });
+            else
+              employees.find(e => e.id === f.id).name = f.name;
+          });
+          save();
+        }
+        resolve();
+      }, resolve);
+    });
   }
 
   sel.innerHTML = '<option value="">— Choose your name —</option>';
@@ -570,19 +571,22 @@ async function doLogin() {
   btn.innerHTML = '<span class="spin"></span> Signing in…';
 
   let ok = false;
-  if (config.webhook) {
-    try {
-      const res  = await fetch(`${config.webhook}?action=verifyPin&id=${encodeURIComponent(id)}&pin=${encodeURIComponent(pin)}`);
-      const data = await res.json();
-      ok = data.valid === true;
-    } catch(e) {
+  await new Promise(resolve => {
+    if (config.webhook) {
+      fetchFromSheet('verifyPin', { id: id, pin: pin }, function(data) {
+        ok = data && data.valid === true;
+        resolve();
+      }, function() {
+        const emp = getEmp(id);
+        ok = emp && emp.pin === pin;
+        resolve();
+      });
+    } else {
       const emp = getEmp(id);
       ok = emp && emp.pin === pin;
+      resolve();
     }
-  } else {
-    const emp = getEmp(id);
-    ok = emp && emp.pin === pin;
-  }
+  });
 
   btn.disabled = false;
   btn.textContent = 'Sign In';
@@ -821,6 +825,43 @@ function buildRow(rec) {
 // ════════════════════════════════════════════════
 // GOOGLE SHEETS
 // ════════════════════════════════════════════════
+
+// fetchFromSheet: uses a hidden <script> tag (JSONP-style) to call the Apps Script
+// doGet endpoint — this bypasses CORS which blocks normal fetch() calls
+let _jsonpCallbackCount = 0;
+function fetchFromSheet(action, params, onSuccess, onError) {
+  const callbackName = '__jsonp_cb_' + (++_jsonpCallbackCount);
+  const timeout = setTimeout(function() {
+    delete window[callbackName];
+    if (document.getElementById(callbackName)) document.getElementById(callbackName).remove();
+    console.warn('Sheet fetch timed out for action:', action);
+    if (onError) onError();
+  }, 12000);
+
+  // Build URL with all params + callback
+  let url = config.webhook + '?action=' + encodeURIComponent(action) + '&callback=' + callbackName;
+  Object.keys(params).forEach(k => { url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); });
+
+  window[callbackName] = function(data) {
+    clearTimeout(timeout);
+    delete window[callbackName];
+    const el = document.getElementById(callbackName);
+    if (el) el.remove();
+    if (onSuccess) onSuccess(data);
+  };
+
+  const script = document.createElement('script');
+  script.id  = callbackName;
+  script.src = url;
+  script.onerror = function() {
+    clearTimeout(timeout);
+    delete window[callbackName];
+    script.remove();
+    if (onError) onError();
+  };
+  document.head.appendChild(script);
+}
+
 async function postSheet(data) {
   if (!config.webhook) return;
   try {
@@ -842,14 +883,10 @@ function renderTeam() {
   feed.innerHTML = '<div style="text-align:center;padding:40px 0"><span class="spin"></span><p class="text-muted small" style="margin-top:12px">Loading live team data…</p></div>';
 
   if (!config.webhook) { renderTeamLocal(); return; }
-
-  fetch(config.webhook + '?action=getLiveTeam&date=' + today)
-    .then(r => r.json())
-    .then(data => {
-      if (!data.records) { renderTeamLocal(); return; }
-      renderTeamFromData(data.records);
-    })
-    .catch(() => renderTeamLocal());
+  fetchFromSheet('getLiveTeam', { date: today }, function(data) {
+    if (!data || !data.records) { renderTeamLocal(); return; }
+    renderTeamFromData(data.records);
+  }, function() { renderTeamLocal(); });
 }
 
 function renderTeamLocal() {
@@ -1064,13 +1101,10 @@ function renderAdminEmps() {
 
   // Always try to get live data from Sheets for force-out accuracy
   if (config.webhook) {
-    fetch(config.webhook + '?action=getLiveTeam&date=' + today)
-      .then(r => r.json())
-      .then(data => {
-        if (data.records) renderAdminEmpsWithLive(data.records);
-        else renderAdminEmpsLocal();
-      })
-      .catch(() => renderAdminEmpsLocal());
+    fetchFromSheet('getLiveTeam', { date: today }, function(data) {
+      if (data && data.records) renderAdminEmpsWithLive(data.records);
+      else renderAdminEmpsLocal();
+    }, function() { renderAdminEmpsLocal(); });
   } else {
     renderAdminEmpsLocal();
   }
