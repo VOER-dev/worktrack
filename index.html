@@ -295,6 +295,86 @@
     background: var(--surface2); border: 1px solid var(--border);
     font-size: 11px; font-family: var(--font-display); font-weight: 600;
   }
+
+  /* ── ADMIN DASHBOARD ── */
+  .admin-nav {
+    background: linear-gradient(135deg, #1a1a00, #0a0a0a);
+    border-bottom: 2px solid var(--accent);
+  }
+  .admin-header {
+    padding: 56px 20px 16px;
+    max-width: 480px; margin: 0 auto; width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .admin-badge {
+    background: var(--accent); color: #0a0a0a;
+    font-family: var(--font-display); font-size: 10px; font-weight: 800;
+    letter-spacing: .1em; padding: 3px 8px; border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .admin-tabs {
+    display: flex; gap: 0;
+    background: var(--surface2); border-radius: var(--radius-sm);
+    padding: 4px; margin-bottom: 20px;
+  }
+  .admin-tab {
+    flex: 1; padding: 9px 6px; border: none; background: transparent;
+    color: var(--muted); font-family: var(--font-display); font-size: 12px;
+    font-weight: 700; letter-spacing: .04em; cursor: pointer;
+    border-radius: 8px; transition: all .2s;
+  }
+  .admin-tab.active { background: var(--accent); color: #0a0a0a; }
+  .admin-panel { display: none; }
+  .admin-panel.active { display: block; }
+  .emp-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+  }
+  .emp-row-info { flex: 1; min-width: 0; }
+  .emp-row-name { font-family: var(--font-display); font-weight: 700; font-size: 14px; }
+  .emp-row-meta { font-size: 12px; color: var(--muted); }
+  .emp-row-actions { display: flex; gap: 6px; }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    transition: all .15s;
+  }
+  .icon-btn:active { transform: scale(.92); }
+  .icon-btn.danger { border-color: rgba(255,71,71,.3); color: var(--danger); }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success); flex-shrink: 0;
+    box-shadow: 0 0 6px var(--success);
+    animation: pulse 2s infinite;
+  }
+  .offline-dot { background: var(--muted); box-shadow: none; animation: none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .summary-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 16px;
+  }
+  .summary-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 16px 14px;
+  }
+  .summary-num {
+    font-family: var(--font-display); font-size: 2rem;
+    font-weight: 800; line-height: 1;
+  }
+  .summary-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-label { font-size: 14px; font-weight: 500; }
+  .settings-val { font-size: 13px; color: var(--muted); }
+  .inline-edit { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .inline-edit input { flex: 1; padding: 10px 12px; font-size: 14px; }
+  .inline-edit button { padding: 10px 16px; white-space: nowrap; width: auto; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -654,8 +734,8 @@ function saveState() {
 const HARDCODED_CONFIG = {
   company : "VOER-Staff 2026",
   webhook : "https://script.google.com/macros/s/AKfycbxZYbxzK6_agk8D12sJxtz2QPBv-cYhtRxiMagZ1dbZTkaxPu6IZywzf-o2I-e8-VFA/exec",
-  lat     : 34.1214,
-  lng     : -118.2247,
+  lat     : 34.12137510638946,
+  lng     : -118.2246968308343,
   radius  : 2000
 };
 
@@ -928,13 +1008,7 @@ async function connectWorkspace() {
 }
 
 function showAdminReset() {
-  const p = prompt('Enter admin PIN (default: 0000):');
-  if(p === '0000' || p === (config?.adminPin || '0000')) {
-    if(confirm('Reset all setup data? This cannot be undone.')) {
-      localStorage.clear();
-      location.reload();
-    }
-  } else { toast('Incorrect admin PIN'); }
+  openAdminLogin();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1333,6 +1407,488 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>el.classList.remove('show'), 2800);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+const ADMIN_DEFAULT_PIN = '0000';
+let adminSettings = {}; // runtime-editable copy of config
+
+function openAdminLogin() {
+  document.getElementById('admin-pin-input').value = '';
+  document.getElementById('modal-admin-login').classList.add('open');
+  setTimeout(() => document.getElementById('admin-pin-input').focus(), 300);
+}
+
+function submitAdminLogin() {
+  const pin = document.getElementById('admin-pin-input').value.trim();
+  const correctPin = adminSettings.adminPin || ADMIN_DEFAULT_PIN;
+  if (pin !== correctPin) { toast('❌ Wrong admin PIN'); return; }
+  document.getElementById('modal-admin-login').classList.remove('open');
+  enterAdminDashboard();
+}
+
+function enterAdminDashboard() {
+  adminSettings = { ...config }; // copy current config into editable state
+  document.getElementById('admin-company-name').textContent = config.company;
+  switchAdminTab('overview');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-admin').classList.add('active');
+  renderAdminOverview();
+}
+
+function exitAdmin() {
+  showLoginScreen();
+}
+
+function adminSignOut() {
+  exitAdmin();
+}
+
+// ── TAB SWITCHING ──────────────────────────────────────────────
+function switchAdminTab(tab) {
+  document.querySelectorAll('.admin-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['overview','employees','today','settings'][i] === tab);
+  });
+  document.querySelectorAll('.admin-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  if (tab === 'overview')   renderAdminOverview();
+  if (tab === 'employees')  renderAdminEmployees();
+  if (tab === 'today')      renderAdminToday();
+  if (tab === 'settings')   renderAdminSettings();
+}
+
+// ── OVERVIEW PANEL ────────────────────────────────────────────
+function renderAdminOverview() {
+  const today = todayKey();
+  let clockedIn = 0, doneToday = 0, notStarted = 0;
+
+  employees.forEach(emp => {
+    const rec = emp.records?.find(r => r.date === today);
+    if (rec?.clockOut) doneToday++;
+    else if (rec?.clockIn) clockedIn++;
+    else notStarted++;
+  });
+
+  document.getElementById('ov-clocked-in').textContent = clockedIn;
+  document.getElementById('ov-total-emp').textContent = employees.length;
+  document.getElementById('ov-done-today').textContent = doneToday;
+  document.getElementById('ov-not-in').textContent = notStarted;
+
+  // Live list
+  const list = document.getElementById('ov-live-list');
+  if (!employees.length) { list.innerHTML = '<p class="text-muted small">No employees yet.</p>'; return; }
+
+  const sorted = [...employees].sort((a, b) => {
+    const ar = a.records?.find(r=>r.date===today);
+    const br = b.records?.find(r=>r.date===today);
+    const aScore = ar?.clockIn ? (ar.clockOut ? 1 : 2) : 0;
+    const bScore = br?.clockIn ? (br.clockOut ? 1 : 2) : 0;
+    return bScore - aScore;
+  });
+
+  list.innerHTML = sorted.map((emp, i) => {
+    const rec = emp.records?.find(r => r.date === today);
+    const idx = employees.findIndex(e => e.id === emp.id);
+    const isIn = rec?.clockIn && !rec?.clockOut;
+    const isDone = rec?.clockOut;
+    let statusText = 'Not started';
+    let timeStr = '';
+    if (isIn) {
+      statusText = 'Clocked in';
+      timeStr = new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    } else if (isDone) {
+      statusText = 'Done';
+      const mins = Math.floor((new Date(rec.clockOut) - new Date(rec.clockIn)) / 60000);
+      timeStr = Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+    }
+    const dotClass = isIn ? 'live-dot' : isDone ? 'live-dot' : 'live-dot offline-dot';
+    const dotColor = isDone ? 'style="background:var(--accent2);box-shadow:0 0 6px var(--accent2)"' : '';
+    return \`
+      <div class="emp-row">
+        <span class="\${dotClass}" \${dotColor}></span>
+        <div class="avatar" style="background:\${getAvatarColor(idx)};color:#0a0a0a;width:36px;height:36px;font-size:12px;border-radius:10px">\${getInitials(emp.name)}</div>
+        <div class="emp-row-info">
+          <div class="emp-row-name">\${emp.name}</div>
+          <div class="emp-row-meta">\${statusText}\${timeStr ? ' · ' + timeStr : ''}</div>
+        </div>
+        \${isIn ? \`<span class="badge badge-in"><span class="badge-dot"></span>Live</span>\` :
+          isDone ? \`<span class="badge" style="background:rgba(71,212,255,.15);color:var(--accent2);border:1px solid rgba(71,212,255,.3)">Done</span>\` :
+          \`<span class="badge badge-out">Out</span>\`}
+      </div>\`;
+  }).join('');
+}
+
+// ── EMPLOYEES PANEL ───────────────────────────────────────────
+function renderAdminEmployees() {
+  const list = document.getElementById('admin-emp-list');
+  document.getElementById('emp-count-label').textContent = employees.length + ' / 20 employees';
+
+  if (!employees.length) {
+    list.innerHTML = '<p class="text-muted small" style="text-align:center;padding:20px 0">No employees yet. Add one above.</p>';
+    return;
+  }
+
+  list.innerHTML = employees.map((emp, i) => {
+    const today = todayKey();
+    const rec = emp.records?.find(r => r.date === today);
+    const status = rec?.clockOut ? '✓ Done' : rec?.clockIn ? '● Active' : '○ Out';
+    const statusColor = rec?.clockOut ? 'var(--accent2)' : rec?.clockIn ? 'var(--success)' : 'var(--muted)';
+    return \`
+      <div class="emp-row">
+        <div class="avatar" style="background:\${getAvatarColor(i)};color:#0a0a0a;width:40px;height:40px;font-size:13px;border-radius:12px">\${getInitials(emp.name)}</div>
+        <div class="emp-row-info">
+          <div class="emp-row-name">\${emp.name}</div>
+          <div class="emp-row-meta" style="color:\${statusColor}">\${status}</div>
+        </div>
+        <div class="emp-row-actions">
+          <button class="icon-btn" onclick="openEditEmployee('\${emp.id}')" title="Edit">✏️</button>
+          <button class="icon-btn danger" onclick="deleteEmployee('\${emp.id}', '\${emp.name}')" title="Remove">🗑️</button>
+        </div>
+      </div>\`;
+  }).join('');
+}
+
+function openAddEmployee() {
+  if (employees.length >= 20) { toast('Max 20 employees reached'); return; }
+  document.getElementById('emp-edit-title').textContent = 'Add Employee';
+  document.getElementById('emp-edit-id').value = '';
+  document.getElementById('emp-edit-name').value = '';
+  document.getElementById('emp-edit-pin').value = '';
+  document.getElementById('modal-emp-edit').classList.add('open');
+}
+
+function openEditEmployee(id) {
+  const emp = getEmployee(id);
+  if (!emp) return;
+  document.getElementById('emp-edit-title').textContent = 'Edit Employee';
+  document.getElementById('emp-edit-id').value = emp.id;
+  document.getElementById('emp-edit-name').value = emp.name;
+  document.getElementById('emp-edit-pin').value = emp.pin || '';
+  document.getElementById('modal-emp-edit').classList.add('open');
+}
+
+function saveEmployeeEdit() {
+  const id   = document.getElementById('emp-edit-id').value;
+  const name = document.getElementById('emp-edit-name').value.trim();
+  const pin  = document.getElementById('emp-edit-pin').value.trim();
+  if (!name) { toast('Enter a name'); return; }
+  if (!/^\d{4}$/.test(pin)) { toast('PIN must be 4 digits'); return; }
+
+  if (id) {
+    // Edit existing
+    const emp = getEmployee(id);
+    if (!emp) return;
+    if (pin !== emp.pin && employees.find(e => e.id !== id && e.pin === pin)) {
+      toast('PIN already taken by another employee'); return;
+    }
+    emp.name = name; emp.pin = pin;
+    updateEmployee(emp);
+    toast('✓ ' + name + ' updated');
+  } else {
+    // Add new
+    if (employees.find(e => e.pin === pin)) { toast('PIN already taken'); return; }
+    const newEmp = { id: 'emp_' + Date.now(), name, pin, records: [], joinedDate: todayKey() };
+    employees.push(newEmp);
+    saveState();
+    toast('✓ ' + name + ' added');
+    // Also sync to Google Sheets
+    sendToSheet({ type: 'newEmployee', employeeId: newEmp.id, employeeName: name, date: todayKey() });
+  }
+
+  document.getElementById('modal-emp-edit').classList.remove('open');
+  renderAdminEmployees();
+  renderAdminOverview();
+}
+
+function deleteEmployee(id, name) {
+  if (!confirm('Remove ' + name + ' from the team? Their clock records will be kept.')) return;
+  employees = employees.filter(e => e.id !== id);
+  saveState();
+  toast('Removed ' + name);
+  renderAdminEmployees();
+  renderAdminOverview();
+}
+
+// ── TODAY PANEL ───────────────────────────────────────────────
+function renderAdminToday() {
+  const today = todayKey();
+  document.getElementById('today-panel-date').textContent =
+    new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+
+  const list = document.getElementById('admin-today-list');
+  const withRecords = employees.filter(emp => emp.records?.find(r => r.date === today && r.clockIn));
+
+  if (!withRecords.length) {
+    list.innerHTML = '<div class="card"><p class="text-muted small" style="text-align:center">No one has clocked in yet today.</p></div>';
+    return;
+  }
+
+  list.innerHTML = withRecords.map((emp, i) => {
+    const rec = emp.records.find(r => r.date === today);
+    const idx = employees.findIndex(e => e.id === emp.id);
+    const inTime  = new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const outTime = rec.clockOut ? new Date(rec.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '—';
+    const mins    = rec.clockOut ? Math.floor((new Date(rec.clockOut) - new Date(rec.clockIn)) / 60000) : null;
+    const hoursStr = mins ? Math.floor(mins/60) + 'h ' + (mins%60) + 'm' : 'In progress';
+    const tasks   = rec.tasks || [];
+    const done    = tasks.filter(t => t.status === 'done').length;
+    const partial = tasks.filter(t => t.status === 'partial').length;
+
+    return \`
+      <div class="card" style="margin-bottom:10px">
+        <div class="flex justify-between items-center" style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="avatar" style="background:\${getAvatarColor(idx)};color:#0a0a0a;width:36px;height:36px;font-size:12px;border-radius:10px">\${getInitials(emp.name)}</div>
+            <div>
+              <div style="font-family:var(--font-display);font-weight:700">\${emp.name}</div>
+              <div class="text-muted small">In \${inTime} · Out \${outTime} · \${hoursStr}</div>
+            </div>
+          </div>
+          \${tasks.length ? \`<span style="font-size:12px;color:var(--success)">\${done}/\${tasks.length} done</span>\` : ''}
+        </div>
+        \${tasks.length ? \`<div>\${tasks.map(t => \`
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:16px">\${t.status==='done'?'✅':t.status==='partial'?'🟡':'⬜'}</span>
+            <span style="font-size:13px;\${t.status==='done'?'text-decoration:line-through;color:var(--muted)':''}">\${t.text}</span>
+          </div>\`).join('')}</div>\` : '<p class="text-muted small">No tasks logged.</p>'}
+        \${rec.notes ? \`<div style="margin-top:10px;font-size:12px;color:var(--muted);font-style:italic">"  \${rec.notes}"</div>\` : ''}
+      </div>\`;
+  }).join('');
+}
+
+// ── SETTINGS PANEL ────────────────────────────────────────────
+function renderAdminSettings() {
+  document.getElementById('set-company-val').textContent = config.company;
+  document.getElementById('set-lat-val').textContent     = config.lat;
+  document.getElementById('set-lng-val').textContent     = config.lng;
+  document.getElementById('set-radius-val').textContent  = config.radius + ' meters';
+  document.getElementById('set-webhook-val').textContent = config.webhook || 'Not set';
+
+  // Pre-fill inputs
+  document.getElementById('set-company-input').value  = config.company;
+  document.getElementById('set-lat-input').value      = config.lat;
+  document.getElementById('set-lng-input').value      = config.lng;
+  document.getElementById('set-radius-input').value   = config.radius;
+  document.getElementById('set-webhook-input').value  = config.webhook || '';
+}
+
+function toggleSettingEdit(key) {
+  const el = document.getElementById('set-' + key + '-edit');
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+
+function saveSetting(key) {
+  let val;
+  if (key === 'webhook') {
+    val = document.getElementById('set-webhook-input').value.trim();
+    if (!val) { toast('Enter a URL'); return; }
+  } else {
+    val = document.getElementById('set-' + key + '-input').value.trim();
+    if (!val) { toast('Enter a value'); return; }
+  }
+
+  if (key === 'adminPin') {
+    if (!/^\d{4}$/.test(val)) { toast('PIN must be 4 digits'); return; }
+  }
+  if (key === 'lat' || key === 'lng') val = parseFloat(val);
+  if (key === 'radius') val = parseInt(val);
+
+  config[key] = val;
+  saveState();
+
+  // Hide edit field and refresh display
+  const editEl = document.getElementById('set-' + key + '-edit');
+  if (editEl) editEl.style.display = 'none';
+  renderAdminSettings();
+  toast('✓ ' + key + ' updated');
+}
+
+
 </script>
+
+<!-- ═══════════════════════════════════════════
+     MODAL: Admin Login
+════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-admin-login">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 style="margin-bottom:6px">Admin Access</h2>
+    <p class="text-muted small" style="margin-bottom:20px">Enter your admin PIN to continue.</p>
+    <div class="input-group">
+      <label>Admin PIN</label>
+      <input type="password" id="admin-pin-input" placeholder="••••" maxlength="4" inputmode="numeric"
+        onkeydown="if(event.key==='Enter') submitAdminLogin()">
+    </div>
+    <button class="btn btn-primary" onclick="submitAdminLogin()">Enter Dashboard</button>
+    <button class="btn btn-ghost mt-8" onclick="document.getElementById('modal-admin-login').classList.remove('open')">Cancel</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL: Add / Edit Employee
+════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-emp-edit">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="emp-edit-title" style="margin-bottom:20px">Add Employee</h2>
+    <input type="hidden" id="emp-edit-id">
+    <div class="input-group">
+      <label>Full Name</label>
+      <input type="text" id="emp-edit-name" placeholder="Jane Smith" maxlength="30">
+    </div>
+    <div class="input-group">
+      <label>4-Digit PIN</label>
+      <input type="number" id="emp-edit-pin" placeholder="1234" maxlength="4" max="9999" inputmode="numeric">
+    </div>
+    <button class="btn btn-primary" onclick="saveEmployeeEdit()">Save Employee</button>
+    <button class="btn btn-ghost mt-8" onclick="document.getElementById('modal-emp-edit').classList.remove('open')">Cancel</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN: ADMIN DASHBOARD
+════════════════════════════════════════════ -->
+<div class="screen" id="screen-admin">
+  <div class="admin-header admin-nav">
+    <div>
+      <div class="admin-badge">Admin</div>
+      <h2 style="margin-top:6px" id="admin-company-name">VOER-Staff 2026</h2>
+    </div>
+    <button class="btn btn-ghost" style="width:auto;padding:8px 14px;font-size:13px" onclick="exitAdmin()">← Exit</button>
+  </div>
+
+  <!-- Admin Tab Bar -->
+  <div style="padding:0 20px;max-width:480px;margin:0 auto;width:100%;padding-top:12px">
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="switchAdminTab('overview')">Overview</button>
+      <button class="admin-tab" onclick="switchAdminTab('employees')">Employees</button>
+      <button class="admin-tab" onclick="switchAdminTab('today')">Today</button>
+      <button class="admin-tab" onclick="switchAdminTab('settings')">Settings</button>
+    </div>
+  </div>
+
+  <div class="content pb-nav" style="padding-top:0">
+
+    <!-- ── PANEL: Overview ── -->
+    <div class="admin-panel active" id="panel-overview">
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-num text-accent" id="ov-clocked-in">0</div>
+          <div class="summary-label">Clocked In Now</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-num" id="ov-total-emp">0</div>
+          <div class="summary-label">Total Employees</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-num text-success" id="ov-done-today">0</div>
+          <div class="summary-label">Finished Today</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-num" id="ov-not-in">0</div>
+          <div class="summary-label">Not Started</div>
+        </div>
+      </div>
+      <h3 style="margin-bottom:12px">Live Status</h3>
+      <div id="ov-live-list"></div>
+    </div>
+
+    <!-- ── PANEL: Employees ── -->
+    <div class="admin-panel" id="panel-employees">
+      <button class="btn btn-primary" style="margin-bottom:16px" onclick="openAddEmployee()">+ Add New Employee</button>
+      <div id="admin-emp-list"></div>
+      <p class="text-muted small" style="margin-top:12px;text-align:center" id="emp-count-label"></p>
+    </div>
+
+    <!-- ── PANEL: Today ── -->
+    <div class="admin-panel" id="panel-today">
+      <h3 style="margin-bottom:4px" id="today-panel-date"></h3>
+      <p class="text-muted small" style="margin-bottom:16px">Full task breakdown for today</p>
+      <div id="admin-today-list"></div>
+    </div>
+
+    <!-- ── PANEL: Settings ── -->
+    <div class="admin-panel" id="panel-settings">
+      <div class="card">
+        <h3 style="margin-bottom:16px">Workplace Settings</h3>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Company Name</div>
+            <div class="settings-val" id="set-company-val"></div>
+            <div class="inline-edit" id="set-company-edit" style="display:none">
+              <input type="text" id="set-company-input" maxlength="40">
+              <button class="btn btn-primary" onclick="saveSetting('company')">Save</button>
+            </div>
+          </div>
+          <button class="icon-btn" onclick="toggleSettingEdit('company')">✏️</button>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Latitude</div>
+            <div class="settings-val" id="set-lat-val"></div>
+            <div class="inline-edit" id="set-lat-edit" style="display:none">
+              <input type="number" id="set-lat-input" step="0.000001">
+              <button class="btn btn-primary" onclick="saveSetting('lat')">Save</button>
+            </div>
+          </div>
+          <button class="icon-btn" onclick="toggleSettingEdit('lat')">✏️</button>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Longitude</div>
+            <div class="settings-val" id="set-lng-val"></div>
+            <div class="inline-edit" id="set-lng-edit" style="display:none">
+              <input type="number" id="set-lng-input" step="0.000001">
+              <button class="btn btn-primary" onclick="saveSetting('lng')">Save</button>
+            </div>
+          </div>
+          <button class="icon-btn" onclick="toggleSettingEdit('lng')">✏️</button>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Clock-In Radius</div>
+            <div class="settings-val" id="set-radius-val"></div>
+            <div class="inline-edit" id="set-radius-edit" style="display:none">
+              <input type="number" id="set-radius-input" min="50" max="5000">
+              <button class="btn btn-primary" onclick="saveSetting('radius')">Save</button>
+            </div>
+          </div>
+          <button class="icon-btn" onclick="toggleSettingEdit('radius')">✏️</button>
+        </div>
+
+        <div class="settings-row">
+          <div>
+            <div class="settings-label">Admin PIN</div>
+            <div class="settings-val">••••</div>
+            <div class="inline-edit" id="set-adminPin-edit" style="display:none">
+              <input type="number" id="set-adminPin-input" placeholder="New PIN" maxlength="4" max="9999">
+              <button class="btn btn-primary" onclick="saveSetting('adminPin')">Save</button>
+            </div>
+          </div>
+          <button class="icon-btn" onclick="toggleSettingEdit('adminPin')">✏️</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:4px">
+        <h3 style="margin-bottom:12px">Webhook URL</h3>
+        <p class="text-muted small" style="margin-bottom:10px;word-break:break-all" id="set-webhook-val"></p>
+        <div class="input-group" style="margin-bottom:8px">
+          <label>Update URL</label>
+          <input type="url" id="set-webhook-input" placeholder="https://script.google.com/macros/s/...">
+        </div>
+        <button class="btn btn-secondary" onclick="saveSetting('webhook')">Update Webhook</button>
+      </div>
+
+      <button class="btn btn-danger" style="margin-top:8px" onclick="adminSignOut()">Sign Out of Admin</button>
+    </div>
+
+  </div>
+</div>
+
 </body>
 </html>
