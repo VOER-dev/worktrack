@@ -853,13 +853,14 @@ function buildRow(rec) {
     date         : rec.date,
     clockIn      : rec.clockIn,
     clockOut     : rec.clockOut || '',
-    tasks        : (rec.tasks || []).map(t => `${t.text} [${t.status}]`).join(' | '),
+    tasks        : (rec.tasks || []).map(t => t.text + ' [' + t.status + ']').join(' | '),
     tasksDone    : (rec.tasks || []).filter(t => t.status === 'done').length,
     tasksPartial : (rec.tasks || []).filter(t => t.status === 'partial').length,
     tasksTotal   : (rec.tasks || []).length,
     notes        : rec.notes || '',
     locationLat  : userLat || '',
-    locationLng  : userLng || ''
+    locationLng  : userLng || '',
+    shiftId      : rec.shiftId || ''   // ← was missing — needed to find correct row in Sheets
   };
 }
 
@@ -952,6 +953,30 @@ function renderTeamLocal() {
   renderTeamFromData(data);
 }
 
+// Safely parse any time string — ISO, formatted, or Google Sheets date string
+function parseTime(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  if (!s || s === 'null' || s === 'undefined' || s === '') return null;
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatDisplayTime(val) {
+  const d = parseTime(val);
+  if (!d) return null;
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function calcHours(inVal, outVal) {
+  const inD  = parseTime(inVal);
+  const outD = parseTime(outVal);
+  if (!inD || !outD) return null;
+  const mins = Math.floor((outD - inD) / 60000);
+  if (mins < 0) return null;
+  return Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+}
+
 function renderTeamFromData(records) {
   const feed = document.getElementById('team-feed');
   if (!records.length) { feed.innerHTML = '<p class="text-muted small">No team data yet.</p>'; return; }
@@ -985,10 +1010,9 @@ function renderTeamFromData(records) {
     const isDone = !!rec.clockOut;
     const tasks  = Array.isArray(rec.tasks) ? rec.tasks : [];
     const doneCt = tasks.filter(t => t.status === 'done').length;
-    const inTime  = rec.clockIn  ? new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : null;
-    const outTime = rec.clockOut ? new Date(rec.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : null;
-    const mins    = rec.clockIn && rec.clockOut ? Math.floor((new Date(rec.clockOut) - new Date(rec.clockIn)) / 60000) : null;
-    const hoursStr = mins !== null ? Math.floor(mins/60) + 'h ' + (mins%60) + 'm' : null;
+    const inTime   = formatDisplayTime(rec.clockIn);
+    const outTime  = formatDisplayTime(rec.clockOut);
+    const hoursStr = calcHours(rec.clockIn, rec.clockOut);
     const statusColor = isIn ? 'var(--success)' : isDone ? 'var(--accent2)' : 'var(--muted)';
     const statusText  = isIn ? '● Working now' : isDone ? '✓ Done for the day' : '○ Not started';
     const dotStyle    = isIn ? 'background:var(--success);box-shadow:0 0 6px var(--success);animation:pulse 2s infinite' : isDone ? 'background:var(--accent2)' : 'background:var(--muted)';
