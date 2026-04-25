@@ -839,47 +839,74 @@ function renderTeam() {
   const today = todayKey();
   document.getElementById('team-date').textContent = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
   const feed = document.getElementById('team-feed');
-  if (!employees.length) { feed.innerHTML = '<p class="text-muted small">No team members yet.</p>'; return; }
+  feed.innerHTML = '<div style="text-align:center;padding:40px 0"><span class="spin"></span><p class="text-muted small" style="margin-top:12px">Loading live team data…</p></div>';
 
-  const sorted = [...employees].sort((a, b) => {
-    const ar = a.records?.find(r => r.date === today);
-    const br = b.records?.find(r => r.date === today);
-    const as = ar?.clockIn ? (ar.clockOut ? 1 : 2) : 0;
-    const bs = br?.clockIn ? (br.clockOut ? 1 : 2) : 0;
+  if (!config.webhook) { renderTeamLocal(); return; }
+
+  fetch(config.webhook + '?action=getLiveTeam&date=' + today)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.records) { renderTeamLocal(); return; }
+      renderTeamFromData(data.records);
+    })
+    .catch(() => renderTeamLocal());
+}
+
+function renderTeamLocal() {
+  const today = todayKey();
+  const feed  = document.getElementById('team-feed');
+  const data  = employees.map(emp => {
+    const rec = emp.records?.find(r => r.date === today);
+    return {
+      id: emp.id, name: emp.name,
+      clockIn: rec?.clockIn || null,
+      clockOut: rec?.clockOut || null,
+      tasks: rec?.tasks || [],
+      notes: rec?.notes || ''
+    };
+  });
+  renderTeamFromData(data);
+}
+
+function renderTeamFromData(records) {
+  const feed = document.getElementById('team-feed');
+  if (!records.length) { feed.innerHTML = '<p class="text-muted small">No team data yet.</p>'; return; }
+
+  const sorted = [...records].sort((a, b) => {
+    const as = a.clockIn ? (a.clockOut ? 1 : 2) : 0;
+    const bs = b.clockIn ? (b.clockOut ? 1 : 2) : 0;
     return bs - as;
   });
 
-  feed.innerHTML = sorted.map((emp) => {
-    const rec    = emp.records?.find(r => r.date === today);
-    const idx    = employees.findIndex(e => e.id === emp.id);
-    const isIn   = rec?.clockIn && !rec?.clockOut;
-    const isDone = !!rec?.clockOut;
-    const tasks  = rec?.tasks || [];
+  feed.innerHTML = sorted.map((rec, i) => {
+    const idx    = employees.findIndex(e => e.id === rec.id);
+    const color  = avatarColor(idx >= 0 ? idx : i);
+    const isIn   = rec.clockIn && !rec.clockOut;
+    const isDone = !!rec.clockOut;
+    const tasks  = Array.isArray(rec.tasks) ? rec.tasks : [];
     const doneCt = tasks.filter(t => t.status === 'done').length;
-    const inTime  = rec?.clockIn  ? new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : null;
-    const outTime = rec?.clockOut ? new Date(rec.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : null;
-    const mins    = rec?.clockIn && rec?.clockOut ? Math.floor((new Date(rec.clockOut) - new Date(rec.clockIn)) / 60000) : null;
+    const inTime  = rec.clockIn  ? new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : null;
+    const outTime = rec.clockOut ? new Date(rec.clockOut).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : null;
+    const mins    = rec.clockIn && rec.clockOut ? Math.floor((new Date(rec.clockOut) - new Date(rec.clockIn)) / 60000) : null;
     const hoursStr = mins !== null ? Math.floor(mins/60) + 'h ' + (mins%60) + 'm' : null;
     const statusColor = isIn ? 'var(--success)' : isDone ? 'var(--accent2)' : 'var(--muted)';
     const statusText  = isIn ? '● Working now' : isDone ? '✓ Done for the day' : '○ Not started';
-    const dotStyle    = isIn ? 'background:var(--success);box-shadow:0 0 6px var(--success)' : isDone ? 'background:var(--accent2)' : 'background:var(--muted)';
+    const dotStyle    = isIn ? 'background:var(--success);box-shadow:0 0 6px var(--success);animation:pulse 2s infinite' : isDone ? 'background:var(--accent2)' : 'background:var(--muted)';
 
     return '<div style="border-bottom:1px solid var(--border);padding:18px 0">'
-      // Header
-      + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:' + (rec?.clockIn ? '10px' : '0') + '">'
+      + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:' + (rec.clockIn ? '10px' : '0') + '">'
         + '<div style="position:relative">'
-          + '<div class="avatar" style="background:' + avatarColor(idx) + ';color:#0a0a0a">' + initials(emp.name) + '</div>'
+          + '<div class="avatar" style="background:' + color + ';color:#0a0a0a">' + initials(rec.name) + '</div>'
           + '<span style="position:absolute;bottom:-2px;right:-2px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bg);' + dotStyle + '"></span>'
         + '</div>'
         + '<div style="flex:1">'
-          + '<div style="font-family:var(--fd);font-weight:700;font-size:15px">' + emp.name + '</div>'
+          + '<div style="font-family:var(--fd);font-weight:700;font-size:15px">' + rec.name + '</div>'
           + '<div style="font-size:12px;color:' + statusColor + ';margin-top:2px">' + statusText + '</div>'
         + '</div>'
         + (tasks.length ? '<div style="text-align:right"><div style="font-family:var(--fd);font-size:14px;font-weight:800;color:var(--success)">' + doneCt + '/' + tasks.length + '</div><div style="font-size:10px;color:var(--muted)">tasks done</div></div>' : '')
       + '</div>'
 
-      // Clock In / Out / Total boxes
-      + (rec?.clockIn
+      + (rec.clockIn
         ? '<div style="display:flex;gap:8px;margin-bottom:10px">'
             + '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px">'
               + '<div style="font-size:10px;color:var(--muted);font-family:var(--fd);font-weight:700;letter-spacing:.05em;text-transform:uppercase">In</div>'
@@ -889,16 +916,13 @@ function renderTeam() {
               + '<div style="font-size:10px;color:var(--muted);font-family:var(--fd);font-weight:700;letter-spacing:.05em;text-transform:uppercase">Out</div>'
               + '<div style="font-family:var(--fd);font-size:16px;font-weight:800;color:' + (outTime ? 'var(--accent2)' : 'var(--muted)') + '">' + (outTime || '—') + '</div>'
             + '</div>'
-            + (hoursStr
-              ? '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px">'
-                  + '<div style="font-size:10px;color:var(--muted);font-family:var(--fd);font-weight:700;letter-spacing:.05em;text-transform:uppercase">Hours</div>'
-                  + '<div style="font-family:var(--fd);font-size:16px;font-weight:800;color:var(--accent)">' + hoursStr + '</div>'
-                + '</div>'
-              : '')
+            + (hoursStr ? '<div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px">'
+                + '<div style="font-size:10px;color:var(--muted);font-family:var(--fd);font-weight:700;letter-spacing:.05em;text-transform:uppercase">Hours</div>'
+                + '<div style="font-family:var(--fd);font-size:16px;font-weight:800;color:var(--accent)">' + hoursStr + '</div>'
+              + '</div>' : '')
           + '</div>'
         : '')
 
-      // Tasks list
       + (tasks.length
         ? '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px">'
             + '<div style="font-size:10px;font-family:var(--fd);font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px">Tasks</div>'
@@ -912,10 +936,10 @@ function renderTeam() {
           + '</div>'
         : '<div style="font-size:13px;color:var(--muted)">No tasks logged today</div>')
 
-      // Notes
-      + (rec?.notes ? '<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:13px;color:var(--muted);font-style:italic">&quot;' + rec.notes + '&quot;</div>' : '')
+      + (rec.notes ? '<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:13px;color:var(--muted);font-style:italic">&quot;' + rec.notes + '&quot;</div>' : '')
     + '</div>';
-  }).join('');
+  }).join('')
+  + '<button class="btn btn-secondary" style="margin-top:16px" onclick="renderTeam()">🔄 Refresh</button>';
 }
 
 
@@ -1037,27 +1061,58 @@ function renderAdminOverview() {
 function renderAdminEmps() {
   document.getElementById('emp-count').textContent = employees.length + ' / 20 employees';
   const today = todayKey();
+
+  // Always try to get live data from Sheets for force-out accuracy
+  if (config.webhook) {
+    fetch(config.webhook + '?action=getLiveTeam&date=' + today)
+      .then(r => r.json())
+      .then(data => {
+        if (data.records) renderAdminEmpsWithLive(data.records);
+        else renderAdminEmpsLocal();
+      })
+      .catch(() => renderAdminEmpsLocal());
+  } else {
+    renderAdminEmpsLocal();
+  }
+}
+
+function renderAdminEmpsLocal() {
+  const today = todayKey();
+  const liveData = employees.map(emp => {
+    const r = emp.records?.find(r => r.date === today);
+    return { id: emp.id, clockIn: r?.clockIn || null, clockOut: r?.clockOut || null };
+  });
+  renderAdminEmpsWithLive(liveData);
+}
+
+function renderAdminEmpsWithLive(liveRecords) {
+  const today = todayKey();
   document.getElementById('emp-list').innerHTML = employees.length
     ? employees.map((emp, i) => {
-        const r  = emp.records?.find(r => r.date === today);
-        const st = r?.clockOut ? '✓ Done' : r?.clockIn ? '● Active' : '○ Out';
-        const sc = r?.clockOut ? 'var(--accent2)' : r?.clockIn ? 'var(--success)' : 'var(--muted)';
-        const clockedInNow = r?.clockIn && !r?.clockOut;
-        return `<div class="emp-row" style="flex-wrap:wrap;gap:10px">
-          <div class="avatar" style="background:${avatarColor(i)};color:#0a0a0a;width:40px;height:40px;font-size:13px;border-radius:12px">${initials(emp.name)}</div>
-          <div class="emp-row-info">
-            <div style="font-family:var(--fd);font-weight:700">${emp.name}</div>
-            <div style="font-size:12px;color:${sc}">${st}${r?.clockIn ? ' · In ' + new Date(r.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : ''}</div>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center">
-            ${clockedInNow ? `<button class="ibtn" style="width:auto;padding:0 10px;font-size:11px;font-family:var(--fd);font-weight:700;color:var(--danger);border-color:rgba(255,71,71,.4);white-space:nowrap" onclick="adminForceClockOut('${emp.id}','${emp.name}')">Force Out</button>` : ''}
-            <button class="ibtn" onclick="openEditEmp('${emp.id}')">✏️</button>
-            <button class="ibtn" style="color:var(--danger);border-color:rgba(255,71,71,.3)" onclick="deleteEmp('${emp.id}','${emp.name}')">🗑️</button>
-          </div>
-        </div>`;
+        const live = liveRecords.find(r => r.id === emp.id);
+        const clockedInNow = live?.clockIn && !live?.clockOut;
+        const isDone       = !!live?.clockOut;
+        const st  = isDone ? '✓ Done' : clockedInNow ? '● Active' : '○ Not started';
+        const sc  = isDone ? 'var(--accent2)' : clockedInNow ? 'var(--success)' : 'var(--muted)';
+        const inT = live?.clockIn ? ' · In ' + new Date(live.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+        return '<div class="emp-row" style="flex-wrap:wrap;gap:8px">'
+          + '<div class="avatar" style="background:' + avatarColor(i) + ';color:#0a0a0a;width:40px;height:40px;font-size:13px;border-radius:12px">' + initials(emp.name) + '</div>'
+          + '<div class="emp-row-info">'
+            + '<div style="font-family:var(--fd);font-weight:700">' + emp.name + '</div>'
+            + '<div style="font-size:12px;color:' + sc + '">' + st + inT + '</div>'
+          + '</div>'
+          + '<div style="display:flex;gap:6px;align-items:center">'
+            + (clockedInNow
+              ? '<button style="padding:6px 10px;border-radius:8px;border:1px solid rgba(255,71,71,.5);background:rgba(255,71,71,.1);color:var(--danger);font-family:var(--fd);font-size:11px;font-weight:800;cursor:pointer;letter-spacing:.04em" onclick="adminForceClockOut(\'' + emp.id + '\',\'' + emp.name + '\')">FORCE OUT</button>'
+              : '')
+            + '<button class="ibtn" onclick="openEditEmp(\'' + emp.id + '\')">✏️</button>'
+            + '<button class="ibtn" style="color:var(--danger);border-color:rgba(255,71,71,.3)" onclick="deleteEmp(\'' + emp.id + '\',\'' + emp.name + '\')">🗑️</button>'
+          + '</div>'
+        + '</div>';
       }).join('')
     : '<p class="text-muted small" style="text-align:center;padding:20px 0">No employees yet.</p>';
 }
+
 
 function openAddEmp() {
   if (employees.length >= 20) { toast('Max 20 employees'); return; }
