@@ -122,6 +122,7 @@ select option{background:var(--surface2)}
 .tag{padding:2px 8px;border-radius:5px;background:var(--surface2);border:1px solid var(--border);font-size:11px;font-family:var(--fd);font-weight:600;display:inline-block;margin:2px 2px 0 0}
 .brand-icon{width:72px;height:72px;border-radius:20px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-family:var(--fd);font-size:28px;font-weight:800;color:#0a0a0a}
 .login-brand{text-align:center;padding:60px 0 36px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
@@ -205,8 +206,19 @@ select option{background:var(--surface2)}
 <!-- ══════════════════════ TEAM ══════════════════════ -->
 <div class="screen" id="screen-team">
   <div class="hdr">
-    <h2>Team Today</h2>
-    <p class="text-muted small mt8" id="team-date" style="margin-top:8px"></p>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h2>Team Today</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span id="live-indicator" style="display:none;align-items:center;gap:5px;font-size:11px;font-family:var(--fd);font-weight:700;color:var(--success)">
+          <span style="width:7px;height:7px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);animation:pulse 2s infinite;display:inline-block"></span>
+          LIVE
+        </span>
+        <span id="team-countdown" style="font-size:11px;color:var(--muted);font-family:var(--fd);font-weight:600"></span>
+        <button onclick="manualRefreshTeam()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px" title="Refresh now">🔄</button>
+      </div>
+    </div>
+    <p class="text-muted small mt8" id="team-date" style="margin-top:4px"></p>
+    <p style="font-size:11px;color:var(--muted);margin-top:2px" id="team-last-updated"></p>
   </div>
   <div class="content" id="team-feed"><p class="text-muted small">Loading…</p></div>
   <nav class="bnav">
@@ -944,7 +956,23 @@ function renderTeamFromData(records) {
   const feed = document.getElementById('team-feed');
   if (!records.length) { feed.innerHTML = '<p class="text-muted small">No team data yet.</p>'; return; }
 
-  const sorted = [...records].sort((a, b) => {
+  // Only show records from the last 24 hours — older data is hidden in the app
+  // (nothing is deleted from Google Sheets — this is display-only filtering)
+  const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+  const filtered = records.filter(rec => {
+    // Keep if they clocked in within last 24 hours
+    if (rec.clockIn) {
+      const inTime = new Date(rec.clockIn).getTime();
+      if (!isNaN(inTime) && inTime >= cutoff) return true;
+    }
+    // Also keep employees with no clock activity today (show as "Not started")
+    if (!rec.clockIn) return true;
+    return false;
+  });
+
+  if (!filtered.length) { feed.innerHTML = '<p class="text-muted small">No activity in the last 24 hours.</p>'; return; }
+
+  const sorted = [...filtered].sort((a, b) => {
     const as = a.clockIn ? (a.clockOut ? 1 : 2) : 0;
     const bs = b.clockIn ? (b.clockOut ? 1 : 2) : 0;
     return bs - as;
@@ -1011,7 +1039,11 @@ function renderTeamFromData(records) {
       + (rec.notes ? '<div style="margin-top:8px;padding:8px 12px;background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;font-size:13px;color:var(--muted);font-style:italic">&quot;' + rec.notes + '&quot;</div>' : '')
     + '</div>';
   }).join('')
-  + '<button class="btn btn-secondary" style="margin-top:16px" onclick="renderTeam()">🔄 Refresh</button>';
+  + '';  // no manual refresh button needed — auto-refresh handles it
+
+  // Show last updated time
+  const upd = document.getElementById('team-last-updated');
+  if (upd) upd.textContent = 'Last updated ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
 
@@ -1054,6 +1086,11 @@ function renderProfile() {
 // ════════════════════════════════════════════════
 // TAB NAVIGATION
 // ════════════════════════════════════════════════
+let _teamRefreshInterval = null;
+let _teamCountdownInterval = null;
+let _teamNextRefresh = 0;
+const TEAM_REFRESH_SECS = 30;
+
 function goTab(tab) {
   ['home','team','profile'].forEach(t => {
     ['h','t','p'].forEach(p => {
@@ -1063,8 +1100,53 @@ function goTab(tab) {
   });
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + tab).classList.add('active');
-  if (tab === 'team')    renderTeam();
+
+  if (tab === 'team') {
+    startTeamLive();
+  } else {
+    stopTeamLive();
+  }
   if (tab === 'profile') renderProfile();
+}
+
+function startTeamLive() {
+  stopTeamLive(); // clear any existing
+  renderTeam();   // immediate fetch
+
+  // Show live indicator
+  const ind = document.getElementById('live-indicator');
+  if (ind) ind.style.display = 'flex';
+
+  // Set next refresh time
+  _teamNextRefresh = Date.now() + TEAM_REFRESH_SECS * 1000;
+
+  // Countdown timer — updates every second
+  _teamCountdownInterval = setInterval(function() {
+    const secs = Math.max(0, Math.ceil((_teamNextRefresh - Date.now()) / 1000));
+    const el = document.getElementById('team-countdown');
+    if (el) el.textContent = 'Refreshing in ' + secs + 's';
+  }, 1000);
+
+  // Auto-refresh every 30 seconds
+  _teamRefreshInterval = setInterval(function() {
+    _teamNextRefresh = Date.now() + TEAM_REFRESH_SECS * 1000;
+    renderTeam();
+  }, TEAM_REFRESH_SECS * 1000);
+}
+
+function stopTeamLive() {
+  if (_teamRefreshInterval)  { clearInterval(_teamRefreshInterval);  _teamRefreshInterval  = null; }
+  if (_teamCountdownInterval){ clearInterval(_teamCountdownInterval); _teamCountdownInterval = null; }
+  const ind = document.getElementById('live-indicator');
+  if (ind) ind.style.display = 'none';
+  const cd = document.getElementById('team-countdown');
+  if (cd) cd.textContent = '';
+}
+
+function manualRefreshTeam() {
+  _teamNextRefresh = Date.now() + TEAM_REFRESH_SECS * 1000;
+  renderTeam();
+  toast('🔄 Refreshed');
 }
 
 // ════════════════════════════════════════════════
@@ -1415,6 +1497,7 @@ function startClock() {
 function doLogout() {
   currentUser = null;
   isAtWork    = false;
+  stopTeamLive();
   if (locWatcher) navigator.geolocation.clearWatch(locWatcher);
   showLogin();
 }
