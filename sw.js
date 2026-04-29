@@ -1,4 +1,4 @@
-const CACHE = 'worktrack-v22';
+const CACHE = 'worktrack-v24';
 const ASSETS = [
   '/worktrack/',
   '/worktrack/index.html',
