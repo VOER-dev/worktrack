@@ -104,6 +104,100 @@ select option{background:var(--surface2)}
 .add-task-row{display:flex;gap:8px;align-items:center;margin-top:10px}
 .add-task-row input{flex:1;padding:10px 13px;font-size:13px}
 .add-task-row button{width:auto;padding:10px 14px;font-size:12px;white-space:nowrap;flex-shrink:0}
+
+/* ════════════════════════════════════════════
+   DESKTOP RESPONSIVE — matches mobile layout
+   ════════════════════════════════════════════ */
+@media (min-width: 600px) {
+  body { background: #050505; }
+
+  /* Center the app in a phone-sized column */
+  .screen { align-items: center; }
+  .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+  /* All screens get a max-width card treatment */
+  #screen-login, #screen-home, #screen-team,
+  #screen-profile, #screen-admin {
+    min-height: 100dvh;
+    width: 100%;
+  }
+
+  /* Header and content stay phone-width */
+  .hdr  { max-width: 480px; }
+  .content { max-width: 480px; }
+
+  /* Nav bar stays bottom but is bounded to the phone width */
+  .bnav {
+    max-width: 480px; left: 50%; right: auto;
+    transform: translateX(-50%);
+    border-radius: 0 0 0 0;
+    border: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+  }
+
+  /* Desktop — show a sidebar nav instead of bottom nav */
+  .bnav {
+    position: fixed;
+    bottom: 0;
+    padding: 10px 0 18px;
+  }
+
+  /* Modals center on desktop */
+  .mo { align-items: center; justify-content: center; }
+  .modal {
+    border-radius: 18px !important;
+    max-width: 480px;
+    width: 100%;
+    padding: 28px 28px 36px;
+  }
+  .mhandle { display: none; }
+
+  /* Login card on desktop */
+  #screen-login .content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 28px;
+    margin-top: 0;
+    margin-bottom: 32px;
+  }
+  #screen-login .hdr { padding-top: 32px; }
+  #screen-login .login-brand { padding: 20px 0 24px; }
+
+  /* Admin screen — full sidebar layout on wide screens */
+  #screen-admin .hdr { max-width: 480px; }
+
+  /* Clock hero larger on desktop */
+  .clock-time { font-size: 4rem; }
+
+  /* Buttons — slightly taller on desktop for easier clicking */
+  .btn { padding: 16px; }
+
+  /* Inputs wider feel */
+  input, select, textarea { font-size: 15px; }
+
+  /* Content area gets a subtle card feel on desktop */
+  #screen-home .content,
+  #screen-team .content,
+  #screen-profile .content {
+    background: transparent;
+  }
+}
+
+@media (min-width: 900px) {
+  /* Wide desktop — two column layout for admin */
+  #screen-admin .content {
+    max-width: 720px;
+  }
+  #screen-admin .hdr { max-width: 720px; }
+  #screen-admin .sum-grid {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+  /* Wider content for team feed on large screens */
+  #screen-team .content { max-width: 640px; }
+  #screen-team .hdr { max-width: 640px; }
+}
+
 </style>
 </head>
 <body>
@@ -627,6 +721,29 @@ function enterApp(){
   document.getElementById('home-co').textContent = config.company;
   goTab('home'); showScreen('home');
   checkLocation(); renderHomeTasks(); updateHomeStatus();
+
+  // On login, pull live state from Sheets so cross-device clock-in is reflected immediately
+  if (config.webhook){
+    fetchFromSheet('getLiveTeam', { date: todayKey() }, function(data){
+      if (!data || !data.records) return;
+      var liveRec = data.records.find(function(r){ return r.id === currentUser.id; });
+      if (liveRec && liveRec.clockIn && !liveRec.clockOut){
+        syncLiveRecord(liveRec);
+      } else if (liveRec && liveRec.clockOut){
+        // They clocked out on another device — sync that too
+        var today = todayKey();
+        var active = getActiveShift();
+        if (active){
+          var idx = currentUser.records.findIndex(function(r){ return r.shiftId===active.shiftId; });
+          if (idx !== -1){
+            currentUser.records[idx].clockOut = liveRec.clockOut;
+            updateEmp(currentUser);
+            renderHomeTasks(); updateHomeStatus();
+          }
+        }
+      }
+    }, function(){});
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -797,11 +914,73 @@ function geoDist(lat1,lon1,lat2,lon2){
 // ═══════════════════════════════════════════
 function handleClock(){
   if (!isAtWork){ toast('Not at workplace'); return; }
-  if (!getActiveShift()){
-    document.getElementById('task-inputs').innerHTML =
-      '<div class="ig"><label>Task 1</label><input type="text" class="tinput" placeholder="e.g. Pour foundation — Unit 4" maxlength="80"></div>';
-    openModal('m-taskin');
-  } else { showClockOutModal(); }
+
+  var localActive = getActiveShift();
+
+  if (!localActive){
+    // Before allowing clock-in, check Sheets to prevent double clock-in from another device
+    var btn = document.getElementById('clock-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span> Checking…';
+
+    function proceedToClockIn(){
+      btn.disabled = false; btn.textContent = 'Clock In';
+      document.getElementById('task-inputs').innerHTML =
+        '<div class="ig"><label>Task 1</label><input type="text" class="tinput" placeholder="e.g. Pour foundation — Unit 4" maxlength="80"></div>';
+      openModal('m-taskin');
+    }
+
+    function blocked(msg){
+      btn.disabled = false;
+      updateHomeStatus(); // refresh UI to reflect actual state
+      toast(msg || '⚠️ Already clocked in on another device');
+    }
+
+    if (!config.webhook){ proceedToClockIn(); return; }
+
+    // Use the fast dedicated endpoint — checks just this employee, not the whole team
+    fetchFromSheet('checkActiveShift', { empId: currentUser.id, date: todayKey() }, function(data){
+      if (!data){
+        proceedToClockIn(); return;
+      }
+      if (data.active){
+        // Clocked in on another device — pull their state locally and block
+        syncLiveRecord({ clockIn: data.clockIn, clockOut: null, tasks: parseSheetsTaskStr(data.tasks||''), notes: '' });
+        blocked('⚠️ Already clocked in at ' + fmtT(data.clockIn) + ' on another device');
+      } else {
+        proceedToClockIn();
+      }
+    }, function(){
+      // Can't reach Sheets — allow clock-in (offline fallback)
+      proceedToClockIn();
+    });
+
+  } else {
+    showClockOutModal();
+  }
+}
+
+// Sync a live Sheets record into local storage so the UI reflects cross-device state
+function syncLiveRecord(liveRec){
+  var today = todayKey();
+  if (!currentUser.records) currentUser.records = [];
+  // Only add if we don't already have this shift locally
+  var exists = currentUser.records.find(function(r){
+    return r.date === today && r.clockIn && !r.clockOut;
+  });
+  if (!exists){
+    currentUser.records.push({
+      date    : today,
+      clockIn : liveRec.clockIn,
+      clockOut: liveRec.clockOut || null,
+      tasks   : Array.isArray(liveRec.tasks) ? liveRec.tasks : [],
+      notes   : liveRec.notes || '',
+      shiftId : 'synced_' + Date.now()
+    });
+    updateEmp(currentUser);
+    renderHomeTasks();
+    updateHomeStatus();
+  }
 }
 function addTaskInput(){
   var c = document.querySelectorAll('.tinput').length+1;
@@ -941,6 +1120,15 @@ function renderTeamFromLocal(){
   }));
 }
 function parseT(val){ if(!val) return null; var s=String(val).trim(); if(!s||s==='null') return null; var d=new Date(s); return isNaN(d.getTime())?null:d; }
+
+// Parse "Task text [status] | Task text [status]" from Sheets into task objects
+function parseSheetsTaskStr(str){
+  if (!str) return [];
+  return str.split(' | ').map(function(s){
+    var m = s.match(/^(.+)\s\[(\w+)\]$/);
+    return m ? {text:m[1].trim(), status:m[2]} : {text:s.trim(), status:'pending'};
+  }).filter(function(t){ return t.text; });
+}
 function fmtT(val){ var d=parseT(val); return d?d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):null; }
 function calcHrs(inV,outV){ var a=parseT(inV),b=parseT(outV); if(!a||!b) return null; var m=Math.floor((b-a)/60000); return m<0?null:Math.floor(m/60)+'h '+(m%60)+'m'; }
 
