@@ -727,21 +727,14 @@ function enterApp(){
     fetchFromSheet('getLiveTeam', { date: todayKey() }, function(data){
       if (!data || !data.records) return;
       var liveRec = data.records.find(function(r){ return r.id === currentUser.id; });
+      // Only sync if they have an ACTIVE shift on another device
+      // (clockIn exists but NO clockOut = currently clocked in)
       if (liveRec && liveRec.clockIn && !liveRec.clockOut){
         syncLiveRecord(liveRec);
-      } else if (liveRec && liveRec.clockOut){
-        // They clocked out on another device — sync that too
-        var today = todayKey();
-        var active = getActiveShift();
-        if (active){
-          var idx = currentUser.records.findIndex(function(r){ return r.shiftId===active.shiftId; });
-          if (idx !== -1){
-            currentUser.records[idx].clockOut = liveRec.clockOut;
-            updateEmp(currentUser);
-            renderHomeTasks(); updateHomeStatus();
-          }
-        }
       }
+      // Do NOT auto-sync clockOut here — that caused random clock-outs.
+      // Cross-device clock-out is handled only by admin Force Out or
+      // when the employee explicitly clocks out on their own device.
     }, function(){});
   }
 }
@@ -800,23 +793,79 @@ function renderHomeTasks(){
   var allToday = (currentUser.records||[]).filter(function(r){ return r.date===today; });
   var card     = document.getElementById('tasks-card');
   var allTasks = allToday.reduce(function(a,r){ return a.concat(r.tasks||[]); }, []);
-  if (!allTasks.length && !getActiveShift()){ card.style.display='none'; return; }
-  if (getActiveShift()) card.style.display = 'block'; // keep card visible when clocked in even if no tasks yet
+  var isActive = !!getActiveShift();
+  if (!allTasks.length && !isActive){ card.style.display='none'; return; }
+  card.style.display = 'block';
   document.getElementById('tasks-badge').textContent = allTasks.length+' task'+(allTasks.length!==1?'s':'');
+
   document.getElementById('tasks-list').innerHTML = allToday.map(function(rec, si){
-    var tasks = rec.tasks||[];
+    var tasks     = rec.tasks||[];
     if (!tasks.length) return '';
+    var recIdx    = (currentUser.records||[]).findIndex(function(r){ return r.shiftId===rec.shiftId; });
+    var shiftActive = rec.clockIn && !rec.clockOut; // tasks in this shift are tappable if shift is open
     var lbl = allToday.length>1
       ? '<div style="font-size:10px;font-family:var(--fd);font-weight:700;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;padding:6px 0 3px">Shift '+(si+1)+' — '+new Date(rec.clockIn).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'</div>'
       : '';
-    return lbl + tasks.map(function(t,ti){
-      var recIdx = (currentUser.records||[]).indexOf(rec);
-      return '<div class="task-item">'
-        +'<div style="flex:1;font-size:13px;'+(t.status==='done'?'text-decoration:line-through;color:var(--muted)':'')+'">'+ t.text+'</div>'
-        +'<span class="tag" style="'+(t.status==='done'?'border-color:rgba(71,255,138,.3);color:var(--success)':t.status==='partial'?'border-color:rgba(232,255,71,.3);color:var(--accent)':'color:var(--muted)')+'">'+(t.status==='done'?'Done':t.status==='partial'?'Partial':'Pending')+'</span>'
+    return lbl + tasks.map(function(t, ti){
+      var isDone    = t.status==='done';
+      var isPartial = t.status==='partial';
+      // Tappable checkoff button — only shown when shift is active
+      var checkBtn = shiftActive
+        ? '<button onclick="toggleTaskStatus('+recIdx+','+ti+')" style="'
+            +'width:24px;height:24px;border-radius:6px;border:2px solid '
+            +(isDone?'var(--success)':isPartial?'var(--accent)':'var(--border)')
+            +';background:'+(isDone?'var(--success)':isPartial?'var(--accent)':'transparent')
+            +';cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;padding:0" title="Tap to toggle status">'
+            +(isDone?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>'
+              :isPartial?'<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/></svg>':'')
+            +'</button>'
+        : '';
+      var statusTag = '<span class="tag" style="'
+        +(isDone?'border-color:rgba(71,255,138,.3);color:var(--success)'
+          :isPartial?'border-color:rgba(232,255,71,.3);color:var(--accent)'
+          :'color:var(--muted)')
+        +'">'+(isDone?'Done':isPartial?'Partial':'Pending')+'</span>';
+      return '<div class="task-item" style="gap:10px;align-items:center">'
+        + checkBtn
+        +'<div style="flex:1;font-size:13px;'+(isDone?'text-decoration:line-through;color:var(--muted)':'')+'">'+ t.text+'</div>'
+        + statusTag
         +'</div>';
     }).join('');
   }).join('');
+}
+
+// Toggle task status from home screen during active shift
+// Cycles: pending → done → partial → pending
+function toggleTaskStatus(recIdx, taskIdx){
+  if (!currentUser || !currentUser.records || !currentUser.records[recIdx]) return;
+  var rec = currentUser.records[recIdx];
+  // Only allow toggling on open shifts
+  if (rec.clockOut) return;
+  var statuses = ['pending','done','partial'];
+  var cur = rec.tasks[taskIdx].status || 'pending';
+  rec.tasks[taskIdx].status = statuses[(statuses.indexOf(cur)+1) % 3];
+  currentUser.records[recIdx] = rec;
+  updateEmp(currentUser);
+
+  // Sync updated task list to Sheets
+  postSheet({
+    type         : 'addTask',
+    employeeId   : currentUser.id,
+    employeeName : currentUser.name,
+    date         : rec.date,
+    shiftId      : rec.shiftId,
+    taskText     : rec.tasks[taskIdx].text,
+    taskStatus   : rec.tasks[taskIdx].status,
+    addedAt      : rec.tasks[taskIdx].addedAt || '',
+    tasks        : rec.tasks.map(function(t){ return t.text+' ['+t.status+']'; }).join(' | '),
+    tasksDone    : rec.tasks.filter(function(t){ return t.status==='done'; }).length,
+    tasksPartial : rec.tasks.filter(function(t){ return t.status==='partial'; }).length,
+    tasksTotal   : rec.tasks.length
+  });
+
+  renderHomeTasks();
+  var newStatus = rec.tasks[taskIdx].status;
+  toast(newStatus==='done'?'✅ Marked done':newStatus==='partial'?'🟡 Marked partial':'⬜ Marked pending');
 }
 
 // ═══════════════════════════════════════════
